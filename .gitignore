@@ -43,6 +43,7 @@ Thumbs.db
 *.key
 .env.local
 .env.production
+!customer-web/.env.production
 secrets/
 # Build artifacts
 backend/static/
