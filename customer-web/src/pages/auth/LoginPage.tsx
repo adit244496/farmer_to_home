@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Mail, AlertCircle, Lock, Eye, EyeOff, ShieldCheck, Sprout, Truck } from 'lucide-react'
+import { Mail, AlertCircle, Lock, Eye, EyeOff, ShieldCheck, Sprout, Truck, Smartphone } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { authService } from '@/services/auth.service'
 import { useAuthStore } from '@/store/authStore'
@@ -92,10 +92,20 @@ export default function LoginPage() {
 
         {/* Header */}
         <div className="bg-primary-700 px-6 pt-5 pb-4 text-center flex-shrink-0">
-          <img src="/logo.png" alt="Farmer to Home" className="h-16 mx-auto mb-1 drop-shadow" />
-          <p className="font-semibold text-sm tracking-wide" style={{ color: '#e8712e' }}>
-            Your Trusted Family Farmer
-          </p>
+          <img
+            src="/logo.png"
+            alt="Farmer to Home"
+            className="h-16 mx-auto mb-2"
+            style={{ mixBlendMode: 'multiply' }}
+          />
+          {/* Decorated tagline */}
+          <div className="flex items-center justify-center gap-2">
+            <div className="flex-1 h-px opacity-40" style={{ background: 'linear-gradient(to right, transparent, #e8712e)' }} />
+            <p className="text-xs font-bold tracking-[0.18em] uppercase italic" style={{ color: '#e8712e' }}>
+              ✦ Your Trusted Family Farmer ✦
+            </p>
+            <div className="flex-1 h-px opacity-40" style={{ background: 'linear-gradient(to left, transparent, #e8712e)' }} />
+          </div>
         </div>
 
         {/* Body */}
@@ -117,7 +127,7 @@ export default function LoginPage() {
                   method === m ? 'bg-primary-700 text-white shadow' : 'text-gray-400 hover:text-primary-700'
                 }`}>
                 {m === 'phone'
-                  ? <><span className="text-xs">📱</span> Mobile</>
+                  ? <><Smartphone className="h-3.5 w-3.5" /> Mobile</>
                   : <><Mail className="h-3.5 w-3.5" /> Email</>}
               </button>
             ))}
