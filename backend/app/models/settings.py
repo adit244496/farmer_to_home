@@ -18,3 +18,11 @@ class AppSection(Base):
     is_visible: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     display_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
     icon: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+
+
+class SiteSetting(Base):
+    """Generic key-value store for runtime-configurable settings."""
+    __tablename__ = "site_settings"
+
+    key: Mapped[str] = mapped_column(String(100), primary_key=True)
+    value: Mapped[Optional[str]] = mapped_column(Text, nullable=True)

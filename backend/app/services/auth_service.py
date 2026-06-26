@@ -28,6 +28,7 @@ from app.core.redis_client import (
     add_to_blocklist as redis_blocklist,
 )
 from app.models.user import User, FarmerProfile
+from app.models.settings import SiteSetting
 from app.schemas.auth import (
     CustomerRegister,
     FarmerRegister,
@@ -40,6 +41,23 @@ from app.utils.notifications import create_notification
 logger = logging.getLogger(__name__)
 
 MAX_OTP_PER_HOUR = 3
+
+_SMTP_KEYS = ["smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_from_name"]
+
+
+async def _load_smtp_settings(db: AsyncSession) -> Optional[dict]:
+    """Load SMTP settings from DB. Returns None if not configured there."""
+    result = await db.execute(select(SiteSetting).where(SiteSetting.key.in_(_SMTP_KEYS)))
+    rows = {row.key: row.value for row in result.scalars().all()}
+    if not rows.get("smtp_user") or not rows.get("smtp_password"):
+        return None
+    return {
+        "host": rows.get("smtp_host") or settings.SMTP_HOST,
+        "port": int(rows.get("smtp_port") or settings.SMTP_PORT),
+        "user": rows["smtp_user"],
+        "password": rows["smtp_password"],
+        "from_name": rows.get("smtp_from_name") or settings.SMTP_FROM_NAME,
+    }
 
 
 async def request_otp(phone: str, db: AsyncSession, redis: aioredis.Redis) -> dict:
@@ -371,7 +389,8 @@ async def request_email_otp(email: str, db: AsyncSession, redis: aioredis.Redis)
     otp = generate_otp()
     await set_email_otp(email, otp)
     await increment_email_rate_limit(email)
-    await send_otp_email(email, otp)
+    smtp = await _load_smtp_settings(db)
+    await send_otp_email(email, otp, smtp_override=smtp)
 
     return {"message": f"OTP sent to {email}", "expires_in": settings.OTP_EXPIRY_MINUTES * 60}
 

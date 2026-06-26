@@ -1038,6 +1038,54 @@ async def admin_update_section(
     return {"key": section.key, "is_visible": section.is_visible, "display_order": section.display_order}
 
 
+@router.get("/settings/smtp", summary="Get SMTP settings (password masked)")
+async def get_smtp_settings(
+    admin=Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.models.settings import SiteSetting
+    from app.utils.otp import SMTP_PASSWORD_MASK
+
+    keys = ["smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_from_name"]
+    result = await db.execute(select(SiteSetting).where(SiteSetting.key.in_(keys)))
+    rows = {row.key: row.value for row in result.scalars().all()}
+
+    return {
+        "smtp_host":      rows.get("smtp_host")      or settings.SMTP_HOST,
+        "smtp_port":      int(rows.get("smtp_port")  or settings.SMTP_PORT),
+        "smtp_user":      rows.get("smtp_user")      or settings.SMTP_USER,
+        "smtp_password":  SMTP_PASSWORD_MASK if rows.get("smtp_password") or settings.SMTP_PASSWORD else "",
+        "smtp_from_name": rows.get("smtp_from_name") or settings.SMTP_FROM_NAME,
+    }
+
+
+@router.patch("/settings/smtp", summary="Save SMTP settings")
+async def update_smtp_settings(
+    body: dict,
+    admin=Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.models.settings import SiteSetting
+    from app.utils.otp import SMTP_PASSWORD_MASK
+
+    allowed = {"smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_from_name"}
+    for key, value in body.items():
+        if key not in allowed:
+            continue
+        # Don't overwrite password if the masked placeholder is sent back
+        if key == "smtp_password" and value == SMTP_PASSWORD_MASK:
+            continue
+        result = await db.execute(select(SiteSetting).where(SiteSetting.key == key))
+        row = result.scalar_one_or_none()
+        if row:
+            row.value = str(value)
+        else:
+            db.add(SiteSetting(key=key, value=str(value)))
+
+    await db.commit()
+    return {"message": "SMTP settings saved"}
+
+
 @router.get("/orders", summary="All orders")
 async def get_all_orders(
     order_status: Optional[str] = None,
