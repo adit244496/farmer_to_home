@@ -4,6 +4,7 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.core.database import get_db
 from app.schemas.product import SearchParams, ProductOut, PaginatedProductsOut
@@ -30,30 +31,39 @@ router = APIRouter(prefix="/products", tags=["Products"])
 @router.get("/", response_model=PaginatedProductsOut, summary="List/search products")
 async def list_products(
     q: Optional[str] = Query(None, description="Search query (supports Marathi/Hindi transliteration)"),
+    category: Optional[str] = Query(None, description="Category slug (e.g. 'vegetables')"),
     category_id: Optional[UUID] = None,
     farmer_id: Optional[UUID] = None,
     min_price: Optional[float] = None,
     max_price: Optional[float] = None,
     is_organic: Optional[bool] = None,
     unit: Optional[str] = None,
-    district: Optional[str] = None,
     in_stock: bool = True,
-    sort_by: str = Query("created_at", description="Sort field: price, created_at, name_en"),
+    sort_by: str = Query("created_at", description="Sort field: price, created_at, name_en, avg_rating"),
     sort_order: str = Query("desc", description="Sort order: asc or desc"),
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
     db: AsyncSession = Depends(get_db),
 ):
     """List products with optional search and filters. Supports Marathi/Hindi transliteration."""
+    from app.models.product import Category as CategoryModel
+
+    # Resolve category slug → category_id if slug provided
+    resolved_category_id = category_id
+    if category and not resolved_category_id:
+        result = await db.execute(
+            select(CategoryModel.id).where(CategoryModel.slug == category)
+        )
+        resolved_category_id = result.scalar_one_or_none()
+
     params = SearchParams(
         q=q,
-        category_id=category_id,
+        category_id=resolved_category_id,
         farmer_id=farmer_id,
         min_price=min_price,
         max_price=max_price,
         is_organic=is_organic,
         unit=unit,
-        district=district,
         in_stock=in_stock,
         sort_by=sort_by,
         sort_order=sort_order,

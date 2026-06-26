@@ -32,7 +32,6 @@ async def search_products(
         max_price=params.max_price,
         is_organic=params.is_organic,
         unit=params.unit,
-        district=params.district,
         in_stock=params.in_stock,
         sort_by=params.sort_by,
         sort_order=params.sort_order,

@@ -1,16 +1,25 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Search, Bookmark, Plus, Loader2 } from 'lucide-react'
+import { ArrowLeft, Bookmark, Plus, Loader2, ChevronDown, Check, Leaf } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { productService, getCategoryEmoji } from '@/services/product.service'
+import { Header } from '@/components/layout/Header'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { Spinner } from '@/components/ui/Spinner'
 import { useAuthStore } from '@/store/authStore'
 import { useCartStore } from '@/store/cartStore'
-import { useState } from 'react'
+import { useState, useRef, useEffect } from 'react'
 import type { Product } from '@/types'
 
-type SortKey = '' | 'price' | '-price' | '-created_at'
+type SortKey = '' | 'price' | '-price' | '-created_at' | '-avg_rating'
+
+const SORT_OPTIONS: { value: SortKey; label: string }[] = [
+  { value: '',           label: 'Relevance' },
+  { value: '-avg_rating', label: 'Rating'   },
+  { value: 'price',      label: 'Price: Low to High' },
+  { value: '-price',     label: 'Price: High to Low' },
+  { value: '-created_at', label: 'Newest First' },
+]
 
 export default function CategoryPage() {
   const { id: slug } = useParams<{ id: string }>()
@@ -20,9 +29,19 @@ export default function CategoryPage() {
   const addItem = useCartStore((s) => s.addItem)
   const cartItems = useCartStore((s) => s.items)
 
-  const [sortBy, setSortBy]       = useState<SortKey>('')
+  const [sortBy, setSortBy]         = useState<SortKey>('')
+  const [sortOpen, setSortOpen]     = useState(false)
   const [organicOnly, setOrganicOnly] = useState(false)
-  const [addingId, setAddingId]   = useState<string | null>(null)
+  const [addingId, setAddingId]     = useState<string | null>(null)
+  const sortRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (sortRef.current && !sortRef.current.contains(e.target as Node)) setSortOpen(false)
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
 
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
@@ -54,27 +73,24 @@ export default function CategoryPage() {
     finally { setAddingId(null) }
   }
 
-  const sortLabel: Record<SortKey, string> = {
-    '': 'Sort By', price: 'Price ↑', '-price': 'Price ↓', '-created_at': 'Newest',
-  }
-  const sortCycle: SortKey[] = ['', 'price', '-price', '-created_at']
+  const sortLabel = SORT_OPTIONS.find((o) => o.value === sortBy)?.label ?? 'Sort By'
 
   return (
     <div className="h-dvh flex flex-col bg-gray-50">
-      {/* Top bar */}
-      <header className="flex-shrink-0 bg-white border-b border-gray-100 shadow-sm z-10">
-        <div className="flex items-center h-14 px-2 gap-2">
-          <button onClick={() => navigate(-1)}
-            className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0">
-            <ArrowLeft className="h-5 w-5" />
-          </button>
-          <h1 className="flex-1 text-base font-bold text-gray-900 capitalize">{catName}</h1>
-          <button onClick={() => navigate('/search')}
-            className="p-2 text-gray-600 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0">
-            <Search className="h-5 w-5" />
-          </button>
-        </div>
-      </header>
+      {/* Full home-screen header */}
+      <Header />
+
+      {/* Slim breadcrumb bar */}
+      <div className="flex-shrink-0 flex items-center gap-2 bg-white border-b border-gray-100 px-2 py-1.5">
+        <button onClick={() => navigate(-1)}
+          className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0">
+          <ArrowLeft className="h-4 w-4" />
+        </button>
+        <h1 className="text-sm font-bold text-gray-800 capitalize">{catName}</h1>
+        {data?.count != null && (
+          <span className="text-[11px] text-gray-400 ml-1">({data.count})</span>
+        )}
+      </div>
 
       {/* Body = sidebar + main */}
       <div className="flex-1 flex overflow-hidden">
@@ -118,37 +134,51 @@ export default function CategoryPage() {
 
         {/* ── Right: Filter + Product grid ───────────────────────────────────── */}
         <main className="flex-1 flex flex-col overflow-hidden">
-          {/* Filter chips */}
-          <div className="flex-shrink-0 flex items-center gap-2 px-3 py-2 bg-white border-b border-gray-100 overflow-x-auto no-scrollbar">
-            {/* Sort */}
-            <button
-              onClick={() => {
-                const idx = sortCycle.indexOf(sortBy)
-                setSortBy(sortCycle[(idx + 1) % sortCycle.length])
-              }}
-              className={`flex items-center gap-1 px-3 py-1.5 rounded-full border text-xs font-semibold flex-shrink-0 transition-colors ${
-                sortBy ? 'bg-[#0d9488] text-white border-[#0d9488]' : 'bg-white text-gray-700 border-gray-300'
-              }`}
-            >
-              {sortLabel[sortBy]} <span className="text-[10px]">▾</span>
-            </button>
+          {/* Filter bar — no overflow-x-auto so dropdown isn't clipped */}
+          <div className="flex-shrink-0 flex items-center gap-2 px-3 py-2 bg-white border-b border-gray-100">
 
-            {/* Organic */}
+            {/* Sort By dropdown */}
+            <div ref={sortRef} className="relative flex-shrink-0">
+              <button
+                onClick={() => setSortOpen((v) => !v)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full border text-xs font-semibold transition-colors ${
+                  sortBy ? 'bg-[#0d9488] text-white border-[#0d9488]' : 'bg-white text-gray-700 border-gray-300'
+                }`}
+              >
+                {sortLabel} <ChevronDown className="h-3 w-3" />
+              </button>
+
+              {sortOpen && (
+                <div className="absolute top-full left-0 mt-1 bg-white rounded-xl shadow-lg border border-gray-100 z-30 min-w-[180px] py-1">
+                  {SORT_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => { setSortBy(opt.value); setSortOpen(false) }}
+                      className={`w-full flex items-center justify-between gap-2 px-4 py-2.5 text-xs font-medium text-left transition-colors hover:bg-gray-50 ${
+                        sortBy === opt.value ? 'text-[#0d9488] font-semibold' : 'text-gray-700'
+                      }`}
+                    >
+                      {opt.label}
+                      {sortBy === opt.value && <Check className="h-3.5 w-3.5 text-[#0d9488] flex-shrink-0" />}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Organic toggle — matches ProductCard badge style */}
             <button
               onClick={() => setOrganicOnly((v) => !v)}
               className={`flex items-center gap-1 px-3 py-1.5 rounded-full border text-xs font-semibold flex-shrink-0 transition-colors ${
-                organicOnly ? 'bg-[#0d9488] text-white border-[#0d9488]' : 'bg-white text-gray-700 border-gray-300'
+                organicOnly
+                  ? 'bg-green-600 text-white border-green-600'
+                  : 'bg-white text-green-700 border-green-200 hover:border-green-400'
               }`}
             >
-              🌿 Organic
+              <Leaf className="h-3 w-3" />
+              Organic
             </button>
 
-            {/* Result count */}
-            {data?.count != null && (
-              <span className="ml-auto text-[11px] text-gray-400 flex-shrink-0">
-                {data.count} items
-              </span>
-            )}
           </div>
 
           {/* Product grid */}

@@ -2,7 +2,8 @@ import api from '@/lib/api'
 import type { Product, PaginatedResponse } from '@/types'
 
 export interface ProductSearchParams {
-  search?: string
+  q?: string          // full-text search (Marathi / Hindi / English)
+  search?: string     // kept for legacy callers; mapped to q
   category?: string
   is_organic?: boolean
   ordering?: string
@@ -40,7 +41,10 @@ export function getCategoryEmoji(slug: string): string {
 
 export const productService = {
   searchProducts: async (params: ProductSearchParams): Promise<PaginatedResponse<Product>> => {
-    const response = await api.get('/products/', { params })
+    // Normalise: legacy `search` field → `q` which the backend expects
+    const { search, ...rest } = params
+    const normalised = { ...rest, ...(search && !rest.q ? { q: search } : {}) }
+    const response = await api.get('/products/', { params: normalised })
     return response.data
   },
 

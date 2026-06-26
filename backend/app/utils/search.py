@@ -5,83 +5,122 @@ from sqlalchemy.orm import selectinload
 
 # Transliteration table: common Marathi/Hindi words → English product names
 TRANSLITERATION_MAP = {
-    # Tomato
-    "टोमॅटो": "tomato",
-    "tamatar": "tomato",
-    "tamato": "tomato",
-    "tomatoe": "tomato",
-    # Mango
-    "आंबा": "mango",
-    "aam": "mango",
-    "aamba": "mango",
-    "aab": "mango",
-    # Potato
-    "बटाटा": "potato",
-    "aloo": "potato",
-    "aaloo": "potato",
-    "batata": "potato",
-    # Onion
-    "कांदा": "onion",
-    "pyaz": "onion",
-    "kanda": "onion",
-    "pyaaz": "onion",
-    # Garlic
-    "लसूण": "garlic",
-    "lehsun": "garlic",
-    "lasun": "garlic",
-    "lahsun": "garlic",
-    # Ginger
-    "आले": "ginger",
-    "adrak": "ginger",
-    "aale": "ginger",
-    # Fenugreek
+    # ── Tomato ──────────────────────────────────────────────────────────────────
+    "टोमॅटो": "tomato", "टोमाटो": "tomato",
+    "tamatar": "tomato", "tamato": "tomato", "tomatoe": "tomato",
+    # ── Mango ───────────────────────────────────────────────────────────────────
+    "आंबा": "mango", "आम": "mango",
+    "aam": "mango", "aamba": "mango", "aab": "mango", "keri": "mango",
+    # ── Potato ──────────────────────────────────────────────────────────────────
+    "बटाटा": "potato", "आलू": "potato",
+    "aloo": "potato", "aaloo": "potato", "batata": "potato", "alu": "potato",
+    # ── Onion ───────────────────────────────────────────────────────────────────
+    "कांदा": "onion", "प्याज": "onion", "प्याजा": "onion",
+    "pyaz": "onion", "kanda": "onion", "pyaaz": "onion", "piaz": "onion",
+    # ── Garlic ──────────────────────────────────────────────────────────────────
+    "लसूण": "garlic", "लहसुन": "garlic",
+    "lehsun": "garlic", "lasun": "garlic", "lahsun": "garlic", "lasan": "garlic",
+    # ── Ginger ──────────────────────────────────────────────────────────────────
+    "आले": "ginger", "अदरक": "ginger",
+    "adrak": "ginger", "aale": "ginger", "adarak": "ginger",
+    # ── Fenugreek ───────────────────────────────────────────────────────────────
     "मेथी": "fenugreek",
-    "methi": "fenugreek",
-    # Spinach
+    "methi": "fenugreek", "methya": "fenugreek",
+    # ── Spinach ─────────────────────────────────────────────────────────────────
     "पालक": "spinach",
     "palak": "spinach",
-    # Chilli
-    "मिरची": "chilli",
-    "mirch": "chilli",
-    "mirchi": "chilli",
-    "chili": "chilli",
-    # Okra / Lady's Finger
-    "भेंडी": "okra",
-    "bhindi": "okra",
-    "bendi": "okra",
-    "bhendi": "okra",
-    "ladyfinger": "okra",
-    # Eggplant / Brinjal
-    "वांगी": "eggplant",
-    "baingan": "eggplant",
-    "vangi": "eggplant",
-    "brinjal": "eggplant",
-    # Milk
+    # ── Chilli ──────────────────────────────────────────────────────────────────
+    "मिरची": "chilli", "मिर्च": "chilli", "हरी मिर्च": "chilli",
+    "mirch": "chilli", "mirchi": "chilli", "chili": "chilli",
+    "hari mirch": "chilli", "green chilli": "chilli",
+    # ── Okra / Lady's Finger ────────────────────────────────────────────────────
+    "भेंडी": "okra", "भिंडी": "okra",
+    "bhindi": "okra", "bendi": "okra", "bhendi": "okra", "ladyfinger": "okra",
+    # ── Eggplant / Brinjal ──────────────────────────────────────────────────────
+    "वांगी": "eggplant", "वांगे": "eggplant", "बैंगन": "eggplant",
+    "baingan": "eggplant", "vangi": "eggplant", "brinjal": "eggplant",
+    "baingun": "eggplant",
+    # ── Milk ────────────────────────────────────────────────────────────────────
     "दूध": "milk",
-    "dudh": "milk",
-    # Rice
-    "तांदूळ": "rice",
-    "chawal": "rice",
-    "tandool": "rice",
-    # Wheat
-    "गहू": "wheat",
-    "gehun": "wheat",
-    "gahu": "wheat",
-    # Cauliflower
-    "फ्लॉवर": "cauliflower",
-    "phool gobi": "cauliflower",
-    "gobi": "cauliflower",
-    # Cabbage
-    "कोबी": "cabbage",
-    "kobi": "cabbage",
-    "patta gobi": "cabbage",
-    # Carrot
+    "dudh": "milk", "doodh": "milk",
+    # ── Rice ────────────────────────────────────────────────────────────────────
+    "तांदूळ": "rice", "चावल": "rice",
+    "chawal": "rice", "tandool": "rice", "tandul": "rice", "chaval": "rice",
+    # ── Wheat ───────────────────────────────────────────────────────────────────
+    "गहू": "wheat", "गेहूं": "wheat",
+    "gehun": "wheat", "gahu": "wheat", "gehu": "wheat",
+    # ── Cauliflower ─────────────────────────────────────────────────────────────
+    "फुलकोबी": "cauliflower", "फ्लॉवर": "cauliflower", "फूल गोभी": "cauliflower",
+    "phool gobi": "cauliflower", "gobi": "cauliflower", "fulkobi": "cauliflower",
+    # ── Cabbage ─────────────────────────────────────────────────────────────────
+    "कोबी": "cabbage", "पत्ता गोभी": "cabbage",
+    "kobi": "cabbage", "patta gobi": "cabbage",
+    # ── Carrot ──────────────────────────────────────────────────────────────────
     "गाजर": "carrot",
     "gajar": "carrot",
-    # Banana
-    "केळ": "banana",
-    "kela": "banana",
-    "kele": "banana",
+    # ── Banana ──────────────────────────────────────────────────────────────────
+    "केळ": "banana", "केला": "banana",
+    "kela": "banana", "kele": "banana",
+    # ── Cucumber ────────────────────────────────────────────────────────────────
+    "काकडी": "cucumber", "खीरा": "cucumber", "ककडी": "cucumber",
+    "kakdi": "cucumber", "kheera": "cucumber", "khira": "cucumber",
+    # ── Bitter Gourd ────────────────────────────────────────────────────────────
+    "कारले": "bitter gourd", "करेला": "bitter gourd",
+    "karela": "bitter gourd", "karle": "bitter gourd",
+    # ── Bottle Gourd ────────────────────────────────────────────────────────────
+    "दुधी": "bottle gourd", "लौकी": "bottle gourd",
+    "dudhi": "bottle gourd", "lauki": "bottle gourd", "loki": "bottle gourd",
+    # ── Capsicum ────────────────────────────────────────────────────────────────
+    "ढोबळी मिर्ची": "capsicum", "शिमला मिर्च": "capsicum",
+    "shimla mirch": "capsicum", "dhobali mirchi": "capsicum",
+    # ── Peas ────────────────────────────────────────────────────────────────────
+    "मटार": "peas", "मटर": "peas", "वाटाणे": "peas",
+    "matar": "peas", "mattar": "peas", "watane": "peas",
+    # ── Coriander ───────────────────────────────────────────────────────────────
+    "कोथिंबीर": "coriander", "धनिया": "coriander",
+    "kothimbir": "coriander", "dhaniya": "coriander", "dhania": "coriander",
+    # ── Mint ────────────────────────────────────────────────────────────────────
+    "पुदिना": "mint",
+    "pudina": "mint",
+    # ── Apple ───────────────────────────────────────────────────────────────────
+    "सफरचंद": "apple", "सेब": "apple",
+    "safarchand": "apple", "seb": "apple",
+    # ── Orange ──────────────────────────────────────────────────────────────────
+    "संत्रा": "orange", "संतरा": "orange",
+    "santra": "orange", "narangi": "orange",
+    # ── Lemon ───────────────────────────────────────────────────────────────────
+    "लिंबू": "lemon", "नींबू": "lemon",
+    "limbu": "lemon", "nimbu": "lemon",
+    # ── Papaya ──────────────────────────────────────────────────────────────────
+    "पपई": "papaya", "पपीता": "papaya",
+    "papai": "papaya", "papita": "papaya",
+    # ── Grapes ──────────────────────────────────────────────────────────────────
+    "द्राक्ष": "grapes", "अंगूर": "grapes",
+    "draksh": "grapes", "angur": "grapes",
+    # ── Watermelon ──────────────────────────────────────────────────────────────
+    "टरबूज": "watermelon", "तरबूज": "watermelon",
+    "tarbooj": "watermelon", "tarbooz": "watermelon",
+    # ── Pomegranate ─────────────────────────────────────────────────────────────
+    "डाळिंब": "pomegranate", "अनार": "pomegranate",
+    "dalimb": "pomegranate", "anar": "pomegranate",
+    # ── Pumpkin ─────────────────────────────────────────────────────────────────
+    "भोपळा": "pumpkin", "कद्दू": "pumpkin",
+    "bhopla": "pumpkin", "kaddu": "pumpkin",
+    # ── Corn ────────────────────────────────────────────────────────────────────
+    "मका": "corn", "मक्का": "corn",
+    "maka": "corn", "makka": "corn", "maize": "corn",
+    # ── Coconut ─────────────────────────────────────────────────────────────────
+    "नारळ": "coconut", "नारियल": "coconut",
+    "naral": "coconut", "nariyal": "coconut",
+    # ── Mustard ─────────────────────────────────────────────────────────────────
+    "मोहरी": "mustard", "सरसों": "mustard",
+    "mohri": "mustard", "sarson": "mustard",
+    # ── French Beans ────────────────────────────────────────────────────────────
+    "फरसबी": "beans", "घेवडा": "beans",
+    "farsabi": "beans", "ghevda": "beans",
+    # ── Drumstick ───────────────────────────────────────────────────────────────
+    "शेवगा": "drumstick", "सहजन": "drumstick",
+    "shevga": "drumstick", "sahjan": "drumstick", "moringa": "drumstick",
 }
 
 
@@ -109,7 +148,6 @@ async def build_search_query(
     max_price=None,
     is_organic=None,
     unit=None,
-    district=None,
     in_stock: bool = True,
     sort_by: str = "created_at",
     sort_order: str = "desc",
@@ -121,7 +159,7 @@ async def build_search_query(
     Uses pg_trgm similarity for fuzzy matching and ts_rank for full-text search.
     """
     from app.models.product import Product, ProductImage
-    from app.models.user import User, FarmerProfile
+    from app.models.user import User
     import uuid
     from decimal import Decimal
 
@@ -171,9 +209,6 @@ async def build_search_query(
 
     if unit:
         filters.append(Product.unit == unit)
-
-    if district:
-        filters.append(FarmerProfile.district.ilike(f"%{district}%"))
 
     if in_stock:
         filters.append(Product.stock > 0)

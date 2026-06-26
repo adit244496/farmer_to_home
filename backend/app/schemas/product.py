@@ -168,13 +168,13 @@ class ProductListOut(BaseModel):
 
 class SearchParams(BaseModel):
     q: Optional[str] = None
-    category_id: Optional[uuid.UUID] = None
+    category_id: Optional[uuid.UUID] = None   # resolved from slug in the router
+    category: Optional[str] = None            # slug — convenience for customer API
     farmer_id: Optional[uuid.UUID] = None
     min_price: Optional[Decimal] = None
     max_price: Optional[Decimal] = None
     is_organic: Optional[bool] = None
     unit: Optional[str] = None
-    district: Optional[str] = None
     in_stock: bool = True
     sort_by: str = "created_at"
     sort_order: str = "desc"
