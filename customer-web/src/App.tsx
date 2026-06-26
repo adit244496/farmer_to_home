@@ -41,7 +41,7 @@ export default function App() {
   }, [initialize])
 
   return (
-    <BrowserRouter>
+    <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <Routes>
         {/* Public auth routes */}
         <Route path="/login" element={<PublicRoute><LoginPage /></PublicRoute>} />

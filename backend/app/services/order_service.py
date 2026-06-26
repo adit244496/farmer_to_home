@@ -91,7 +91,10 @@ async def get_cart(
     """Get cart with items, subtotals, delivery charge, and totals."""
     result = await db.execute(
         select(Cart)
-        .options(selectinload(Cart.product).selectinload(Product.images))
+        .options(
+            selectinload(Cart.product).selectinload(Product.images),
+            selectinload(Cart.product).selectinload(Product.farmer),
+        )
         .where(Cart.user_id == user_id)
         .order_by(Cart.added_at)
     )
@@ -125,6 +128,9 @@ async def get_cart(
             "product_name_mr": product.name_mr,
             "product_price": product.price,
             "product_unit": product.unit,
+            "product_stock": product.stock,
+            "product_min_order_qty": product.min_order_qty,
+            "farmer_name": product.farmer.name if product.farmer else None,
             "primary_image": primary_image,
             "quantity": item.quantity,
             "subtotal": item_subtotal,

@@ -9,16 +9,10 @@ interface CartState {
   deliveryCharge: number
   totalAmount: number
   fetchCart: () => Promise<void>
-  addItem: (productId: number, quantity: number) => Promise<void>
-  updateItem: (itemId: number, quantity: number) => Promise<void>
-  removeItem: (itemId: number) => Promise<void>
+  addItem: (productId: string, quantity: number) => Promise<void>
+  updateItem: (productId: string, quantity: number) => Promise<void>
+  removeItem: (productId: string) => Promise<void>
   clear: () => void
-}
-
-function calcTotals(items: CartItem[]) {
-  const subtotal = items.reduce((sum, item) => sum + item.subtotal, 0)
-  const deliveryCharge = subtotal >= 500 ? 0 : 40
-  return { subtotal, deliveryCharge, totalAmount: subtotal + deliveryCharge }
 }
 
 export const useCartStore = create<CartState>((set, get) => ({
@@ -33,7 +27,13 @@ export const useCartStore = create<CartState>((set, get) => ({
     try {
       const cart = await orderService.getCart()
       const items = cart.items ?? []
-      set({ items, ...calcTotals(items), loading: false })
+      set({
+        items,
+        subtotal: cart.subtotal,
+        deliveryCharge: cart.delivery_charge,
+        totalAmount: cart.total,
+        loading: false,
+      })
     } catch {
       set({ loading: false })
     }
@@ -44,13 +44,13 @@ export const useCartStore = create<CartState>((set, get) => ({
     await get().fetchCart()
   },
 
-  updateItem: async (itemId, quantity) => {
-    await orderService.updateCartItem(itemId, quantity)
+  updateItem: async (productId, quantity) => {
+    await orderService.updateCartItem(productId, quantity)
     await get().fetchCart()
   },
 
-  removeItem: async (itemId) => {
-    await orderService.removeFromCart(itemId)
+  removeItem: async (productId) => {
+    await orderService.removeFromCart(productId)
     await get().fetchCart()
   },
 

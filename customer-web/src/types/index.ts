@@ -30,51 +30,70 @@ export interface Farmer {
 }
 
 export interface ProductImage {
-  id: number
+  id?: string
   image_url: string
   is_primary: boolean
+  order?: number
 }
 
 export interface Product {
-  id: number
-  farmer: {
-    id: number
-    full_name: string
-    district: string
-    village: string
-    profile_photo?: string
-    rating: number
-    total_ratings: number
-  }
+  id: string                        // UUID
   name_en: string
   name_mr: string
   description_en?: string
   description_mr?: string
-  category: string
-  price_per_unit: number
+  price: number
   unit: string
   min_order_qty: number
-  stock_quantity: number
+  stock: number
   is_organic: boolean
-  is_active: boolean
-  original_price?: number
-  discount_percent?: number
-  harvest_date?: string
-  best_before_date?: string
+  status?: string
+  primary_image?: string | null
   images: ProductImage[]
-  tags: string[]
+  category_slug?: string | null
   benefits?: string[]
-  rating: number
-  total_ratings: number
-  created_at: string
+  tags?: string[]
+  // List endpoint: flat farmer fields
+  farmer_name?: string | null
+  farmer_id?: string | null
+  farmer_district?: string | null
+  // Detail endpoint: nested farmer object
+  farmer?: {
+    id: string
+    name: string
+    district?: string | null
+    rating?: number
+    photo?: string | null
+  } | null
+  discount?: {
+    discount_percent: number
+    valid_from: string | null
+    valid_until: string | null
+  } | null
+  // Ratings (null in list, populated in detail)
+  rating?: number | null
+  avg_rating?: number | null
+  review_count?: number
+  harvest_date?: string | null
+  best_before_date?: string | null
+  created_at?: string
+  updated_at?: string
 }
 
 export interface CartItem {
-  id: number
-  product: Product
+  id: string
+  product_id: string
+  product_name_en: string
+  product_name_mr: string
+  product_price: number
+  product_unit: string
+  product_stock: number
+  product_min_order_qty: number
+  farmer_name: string | null
+  primary_image: string | null
   quantity: number
-  unit_price: number
   subtotal: number
+  added_at: string
 }
 
 export interface Address {

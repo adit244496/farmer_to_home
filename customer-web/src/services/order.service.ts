@@ -7,24 +7,32 @@ export interface PlaceOrderData {
   promo_code?: string
 }
 
+export interface CartResponse {
+  items: CartItem[]
+  subtotal: number
+  delivery_charge: number
+  discount: number
+  total: number
+  promo_code: string | null
+  item_count: number
+}
+
 export const orderService = {
-  getCart: async (): Promise<{ items: CartItem[]; subtotal: number; total: number }> => {
-    const response = await api.get('/orders/cart/')
+  getCart: async (): Promise<CartResponse> => {
+    const response = await api.get('/cart/')
     return response.data
   },
 
-  addToCart: async (productId: number, quantity: number): Promise<CartItem> => {
-    const response = await api.post('/orders/cart/items/', { product_id: productId, quantity })
-    return response.data
+  addToCart: async (productId: string, quantity: number): Promise<void> => {
+    await api.post('/cart/items', { product_id: productId, quantity })
   },
 
-  updateCartItem: async (itemId: number, quantity: number): Promise<CartItem> => {
-    const response = await api.patch(`/orders/cart/items/${itemId}/`, { quantity })
-    return response.data
+  updateCartItem: async (productId: string, quantity: number): Promise<void> => {
+    await api.put(`/cart/items/${productId}`, { quantity })
   },
 
-  removeFromCart: async (itemId: number): Promise<void> => {
-    await api.delete(`/orders/cart/items/${itemId}/`)
+  removeFromCart: async (productId: string): Promise<void> => {
+    await api.delete(`/cart/items/${productId}`)
   },
 
   placeOrder: async (data: PlaceOrderData): Promise<Order> => {

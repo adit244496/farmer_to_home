@@ -128,11 +128,10 @@ async def build_search_query(
     # Normalize search query
     normalized_q = normalize_search_query(q) if q else None
 
-    # Build base query
+    # Build base query — both joins are LEFT so admin-created products
+    # with no farmer_id are still included.
     stmt = (
         select(Product)
-        .join(User, Product.farmer_id == User.id)
-        .outerjoin(FarmerProfile, FarmerProfile.user_id == User.id)
         .options(
             selectinload(Product.images),
             selectinload(Product.farmer).selectinload(User.farmer_profile),
@@ -178,9 +177,6 @@ async def build_search_query(
 
     if in_stock:
         filters.append(Product.stock > 0)
-
-    # Only approved farmers
-    filters.append(FarmerProfile.status == "APPROVED")
 
     if filters:
         stmt = stmt.where(and_(*filters))

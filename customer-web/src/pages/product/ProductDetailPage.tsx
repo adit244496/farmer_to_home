@@ -62,10 +62,13 @@ export default function ProductDetailPage() {
 
   if (!product) return null
 
-  const name = getProductName(product, language)
+  const name        = getProductName(product, language)
   const description = getProductDescription(product, language)
-  const images = product.images ?? []
-  const isOutOfStock = product.stock_quantity < product.min_order_qty
+  const images      = product.images ?? []
+  const minQty      = product.min_order_qty ?? 1
+  const inStock     = product.stock >= minQty
+  const avgRating   = product.avg_rating ?? product.rating ?? 0
+  const reviewCount = product.review_count ?? 0
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24 sm:pb-0">
@@ -93,7 +96,7 @@ export default function ProductDetailPage() {
               <div className="flex gap-2 overflow-x-auto no-scrollbar">
                 {images.map((img, i) => (
                   <button
-                    key={img.id}
+                    key={img.id ?? i}
                     onClick={() => setActiveImg(i)}
                     className={`flex-shrink-0 w-14 h-14 rounded-xl overflow-hidden border-2 transition-colors ${
                       i === activeImg ? 'border-primary-600' : 'border-gray-200'
@@ -117,37 +120,52 @@ export default function ProductDetailPage() {
                   </span>
                 )}
               </div>
-              {product.total_ratings > 0 && (
+              {reviewCount > 0 && (
                 <div className="flex items-center gap-1 mb-2">
                   <Star className="h-4 w-4 text-yellow-400 fill-yellow-400" />
-                  <span className="text-sm font-semibold text-gray-800">{product.rating.toFixed(1)}</span>
-                  <span className="text-sm text-gray-400">({product.total_ratings} {t('reviews')})</span>
+                  <span className="text-sm font-semibold text-gray-800">{avgRating.toFixed(1)}</span>
+                  <span className="text-sm text-gray-400">({reviewCount} {t('reviews')})</span>
                 </div>
               )}
               <div className="flex items-baseline gap-2">
-                <span className="text-2xl font-bold text-primary-700">{formatCurrency(product.price_per_unit)}</span>
+                <span className="text-2xl font-bold text-primary-700">{formatCurrency(product.price)}</span>
                 <span className="text-sm text-gray-400">/{product.unit}</span>
               </div>
             </div>
 
             {/* Farmer */}
-            <Link
-              to={`/farmer/${product.farmer.id}`}
-              className="flex items-center gap-3 bg-gray-50 rounded-xl p-3 hover:bg-gray-100 transition-colors"
-            >
-              <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-bold text-sm">
-                {product.farmer.full_name[0]}
+            {product.farmer ? (
+              <Link
+                to={`/farmer/${product.farmer.id}`}
+                className="flex items-center gap-3 bg-gray-50 rounded-xl p-3 hover:bg-gray-100 transition-colors"
+              >
+                <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-bold text-sm">
+                  {product.farmer.name[0]}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-gray-800">{product.farmer.name}</p>
+                  {product.farmer.district && (
+                    <p className="text-xs text-gray-500 flex items-center gap-1">
+                      <MapPin className="h-3 w-3" />
+                      {product.farmer.district}
+                    </p>
+                  )}
+                </div>
+                {product.farmer.rating != null && (
+                  <>
+                    <Star className="h-3.5 w-3.5 text-yellow-400 fill-yellow-400" />
+                    <span className="text-sm text-gray-600">{product.farmer.rating.toFixed(1)}</span>
+                  </>
+                )}
+              </Link>
+            ) : product.farmer_name ? (
+              <div className="flex items-center gap-3 bg-gray-50 rounded-xl p-3">
+                <div className="w-10 h-10 bg-primary-100 rounded-full flex items-center justify-center text-primary-700 font-bold text-sm">
+                  {product.farmer_name[0]}
+                </div>
+                <p className="text-sm font-semibold text-gray-800">{product.farmer_name}</p>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-gray-800">{product.farmer.full_name}</p>
-                <p className="text-xs text-gray-500 flex items-center gap-1">
-                  <MapPin className="h-3 w-3" />
-                  {product.farmer.village}, {product.farmer.district}
-                </p>
-              </div>
-              <Star className="h-3.5 w-3.5 text-yellow-400 fill-yellow-400" />
-              <span className="text-sm text-gray-600">{product.farmer.rating.toFixed(1)}</span>
-            </Link>
+            ) : null}
 
             {description && (
               <div>
@@ -157,32 +175,32 @@ export default function ProductDetailPage() {
             )}
 
             <div className="flex items-center gap-4 text-sm">
-              <span className={isOutOfStock ? 'text-red-500 font-medium' : 'text-green-600 font-medium'}>
-                {isOutOfStock ? t('outOfStock') : `${t('inStock')} (${product.stock_quantity} ${product.unit})`}
+              <span className={!inStock ? 'text-red-500 font-medium' : 'text-green-600 font-medium'}>
+                {!inStock ? t('outOfStock') : `${t('inStock')} (${product.stock} ${product.unit})`}
               </span>
-              <span className="text-gray-400">{t('minOrder')}: {product.min_order_qty} {product.unit}</span>
+              <span className="text-gray-400">{t('minOrder')}: {minQty} {product.unit}</span>
             </div>
 
-            {!isOutOfStock && (
+            {inStock && (
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
                   <span className="text-sm text-gray-600">{t('selectQuantity')}:</span>
                   <div className="flex items-center border border-gray-200 rounded-xl overflow-hidden">
                     <button
-                      onClick={() => setQty((q) => Math.max(product.min_order_qty, q - 1))}
+                      onClick={() => setQty((q) => Math.max(minQty, q - 1))}
                       className="p-2.5 text-gray-600 hover:bg-gray-100 transition-colors"
                     >
                       <Minus className="h-4 w-4" />
                     </button>
                     <span className="px-4 py-2 text-sm font-semibold min-w-[3rem] text-center">{qty}</span>
                     <button
-                      onClick={() => setQty((q) => Math.min(product.stock_quantity, q + 1))}
+                      onClick={() => setQty((q) => Math.min(product.stock, q + 1))}
                       className="p-2.5 text-gray-600 hover:bg-gray-100 transition-colors"
                     >
                       <Plus className="h-4 w-4" />
                     </button>
                   </div>
-                  <span className="text-sm font-bold text-primary-700">{formatCurrency(product.price_per_unit * qty)}</span>
+                  <span className="text-sm font-bold text-primary-700">{formatCurrency(product.price * qty)}</span>
                 </div>
                 {addedMsg && (
                   <div className="bg-green-50 border border-green-200 text-green-700 text-sm px-4 py-2 rounded-xl">

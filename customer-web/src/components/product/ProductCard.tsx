@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Star, Leaf, ShoppingCart } from 'lucide-react'
+import { Leaf, ShoppingCart } from 'lucide-react'
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { useAuthStore } from '@/store/authStore'
@@ -19,16 +19,17 @@ export function ProductCard({ product, className }: ProductCardProps) {
   const addItem = useCartStore((s) => s.addItem)
   const [adding, setAdding] = useState(false)
 
-  const name = getProductName(product, language)
-  const image = getPrimaryImage(product.images)
-  const isOutOfStock = product.stock_quantity < product.min_order_qty
+  const name     = getProductName(product, language)
+  const image    = product.primary_image ?? getPrimaryImage(product.images)
+  const minQty   = product.min_order_qty ?? 1
+  const inStock  = product.stock >= minQty
 
   const handleAddToCart = async (e: React.MouseEvent) => {
     e.preventDefault()
-    if (!isAuthenticated || isOutOfStock || adding) return
+    if (!isAuthenticated || !inStock || adding) return
     setAdding(true)
     try {
-      await addItem(product.id, product.min_order_qty)
+      await addItem(product.id, minQty)
     } finally {
       setAdding(false)
     }
@@ -59,7 +60,7 @@ export function ProductCard({ product, className }: ProductCardProps) {
             {t('organic')}
           </span>
         )}
-        {isOutOfStock && (
+        {!inStock && (
           <div className="absolute inset-0 bg-black/40 flex items-center justify-center">
             <span className="text-white text-xs font-semibold bg-black/60 px-2 py-1 rounded-full">
               {t('outOfStock')}
@@ -70,30 +71,20 @@ export function ProductCard({ product, className }: ProductCardProps) {
 
       {/* Info */}
       <div className="p-3 flex flex-col flex-1">
-        <p className="text-xs text-gray-500 mb-0.5 truncate">
-          {product.farmer.full_name} · {product.farmer.village}
-        </p>
-        <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 mb-1 flex-1">{name}</h3>
-
-        {/* Rating */}
-        {product.total_ratings > 0 && (
-          <div className="flex items-center gap-1 mb-2">
-            <Star className="h-3 w-3 text-yellow-400 fill-yellow-400" />
-            <span className="text-xs text-gray-600">
-              {product.rating.toFixed(1)} ({product.total_ratings})
-            </span>
-          </div>
+        {product.farmer_name && (
+          <p className="text-xs text-gray-500 mb-0.5 truncate">{product.farmer_name}</p>
         )}
+        <h3 className="text-sm font-semibold text-gray-900 line-clamp-2 mb-1 flex-1">{name}</h3>
 
         {/* Price + Cart */}
         <div className="flex items-center justify-between mt-auto">
           <div>
             <span className="text-base font-bold text-primary-700">
-              {formatCurrency(product.price_per_unit)}
+              {formatCurrency(product.price)}
             </span>
             <span className="text-xs text-gray-400">/{product.unit}</span>
           </div>
-          {isAuthenticated && !isOutOfStock && (
+          {isAuthenticated && inStock && (
             <button
               onClick={handleAddToCart}
               disabled={adding}

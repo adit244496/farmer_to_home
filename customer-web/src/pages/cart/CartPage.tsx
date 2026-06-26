@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 import { Trash2, Plus, Minus, ShoppingBag } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { useCartStore } from '@/store/cartStore'
@@ -8,7 +8,10 @@ import { Header } from '@/components/layout/Header'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
-import { formatCurrency, getProductName, getPrimaryImage } from '@/utils/formatting'
+
+function formatCurrency(amount: number) {
+  return `₹${amount.toFixed(2)}`
+}
 
 export default function CartPage() {
   const { t } = useTranslation('orders')
@@ -46,47 +49,53 @@ export default function CartPage() {
             {/* Items */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 divide-y divide-gray-100">
               {items.map((item) => {
-                const name = getProductName(item.product, language)
-                const image = getPrimaryImage(item.product.images)
+                const name = language === 'mr' ? item.product_name_mr : item.product_name_en
                 return (
                   <div key={item.id} className="flex gap-3 p-4">
                     <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden flex-shrink-0">
-                      {image ? (
-                        <img src={image} alt={name} className="w-full h-full object-cover" />
+                      {item.primary_image ? (
+                        <img src={item.primary_image} alt={name} className="w-full h-full object-cover" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center text-2xl">🌿</div>
                       )}
                     </div>
                     <div className="flex-1 min-w-0">
-                      <Link
-                        to={`/product/${item.product.id}`}
-                        className="text-sm font-semibold text-gray-800 line-clamp-1 hover:text-primary-700"
+                      <button
+                        onClick={() => navigate(`/product/${item.product_id}`)}
+                        className="text-sm font-semibold text-gray-800 line-clamp-1 hover:text-primary-700 text-left"
                       >
                         {name}
-                      </Link>
-                      <p className="text-xs text-gray-400">{item.product.farmer.full_name}</p>
+                      </button>
+                      {item.farmer_name && (
+                        <p className="text-xs text-gray-400">{item.farmer_name}</p>
+                      )}
+                      <p className="text-xs text-gray-400">
+                        {formatCurrency(item.product_price)} / {item.product_unit}
+                      </p>
                       <p className="text-sm font-bold text-primary-700 mt-1">
                         {formatCurrency(item.subtotal)}
                       </p>
                     </div>
                     <div className="flex flex-col items-end justify-between">
                       <button
-                        onClick={() => removeItem(item.id)}
+                        onClick={() => removeItem(item.product_id)}
                         className="text-gray-400 hover:text-red-500 transition-colors"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>
                       <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
                         <button
-                          onClick={() => updateItem(item.id, Math.max(item.product.min_order_qty, item.quantity - 1))}
-                          className="p-1.5 hover:bg-gray-100"
+                          onClick={() => updateItem(item.product_id, Math.max(item.product_min_order_qty, item.quantity - 1))}
+                          className="p-1.5 hover:bg-gray-100 disabled:opacity-40"
+                          disabled={item.quantity <= item.product_min_order_qty}
                         >
                           <Minus className="h-3 w-3" />
                         </button>
-                        <span className="px-2 text-sm font-semibold">{item.quantity}</span>
+                        <span className="px-2 text-sm font-semibold min-w-[2rem] text-center">{item.quantity}</span>
                         <button
-                          onClick={() => updateItem(item.id, Math.min(item.product.stock_quantity, item.quantity + 1))}
-                          className="p-1.5 hover:bg-gray-100"
+                          onClick={() => updateItem(item.product_id, Math.min(item.product_stock, item.quantity + 1))}
+                          className="p-1.5 hover:bg-gray-100 disabled:opacity-40"
+                          disabled={item.quantity >= item.product_stock}
                         >
                           <Plus className="h-3 w-3" />
                         </button>

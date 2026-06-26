@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom'
-import { Search, ShoppingCart, User, Globe, Sprout } from 'lucide-react'
+import { Search, ShoppingCart, User, Globe } from 'lucide-react'
 import { useAuthStore } from '@/store/authStore'
 import { useCartStore } from '@/store/cartStore'
 import { useTranslation } from 'react-i18next'
@@ -11,16 +11,11 @@ export function Header() {
   const navigate = useNavigate()
 
   return (
-    <header className="sticky top-0 z-50 bg-white border-b border-gray-200 shadow-sm">
+    <header className="sticky top-0 z-50 bg-white border-b border-gray-100 shadow-sm">
       <div className="max-w-6xl mx-auto px-4 h-14 flex items-center gap-3">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2 mr-2">
-          <div className="bg-primary-700 rounded-lg p-1.5">
-            <Sprout className="h-5 w-5 text-white" />
-          </div>
-          <span className="font-bold text-primary-800 text-sm hidden sm:block">
-            {t('appName')}
-          </span>
+        <Link to="/" className="flex items-center mr-2 flex-shrink-0">
+          <img src="/icon.png" alt="Farmer to Home" className="h-9 w-auto" />
         </Link>
 
         {/* Search bar */}
