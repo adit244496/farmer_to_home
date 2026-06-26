@@ -1,0 +1,66 @@
+{
+  "expo": {
+    "name": "Farmer to Home",
+    "slug": "farmer-to-home",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "scheme": "farmertohome",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/logo_eng_white.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0F766E"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.farmertohome.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0F766E"
+      },
+      "package": "com.farmertohome.app",
+      "navigationBar": {
+        "backgroundColor": "#0F766E",
+        "barStyle": "light-content"
+      },
+      "permissions": [
+        "CAMERA",
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE",
+        "INTERNET"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-secure-store",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#0F766E"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app needs access to your photos to upload product images."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}

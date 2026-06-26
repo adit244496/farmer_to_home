@@ -1,0 +1,56 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+*.env
+!.env.example
+
+# Alembic
+backend/migrations/versions/__pycache__/
+
+# Node / React Native
+node_modules/
+.expo/
+dist/
+web-build/
+.expo-shared/
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+*.orig.*
+
+# Logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/settings.json
+
+# Secrets
+*.pem
+*.crt
+*.key
+.env.local
+.env.production
+secrets/
+
+# Build artifacts
+backend/static/
+frontend/.expo/
+frontend/web-build/
