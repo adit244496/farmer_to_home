@@ -10,6 +10,8 @@ from typing import Optional
 
 class PatchUserProfile(BaseModel):
     name: Optional[str] = None
+    full_name: Optional[str] = None  # frontend alias for name
+    phone: Optional[str] = None
     email: Optional[str] = None
     language_pref: Optional[str] = None
     language_preference: Optional[str] = None  # frontend alias
@@ -39,9 +41,10 @@ async def update_me(
     db: AsyncSession = Depends(get_db),
 ):
     update_data = body.model_dump(exclude_unset=True)
-    # map language_preference → language_pref (frontend alias)
     if "language_preference" in update_data:
         update_data["language_pref"] = update_data.pop("language_preference")
+    if "full_name" in update_data:
+        update_data["name"] = update_data.pop("full_name")
     for field, value in update_data.items():
         setattr(current_user, field, value)
     current_user.updated_at = datetime.utcnow()

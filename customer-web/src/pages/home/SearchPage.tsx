@@ -1,10 +1,9 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useSearchParams, useNavigate } from 'react-router-dom'
 import { Search, ArrowLeft, SlidersHorizontal, Leaf } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { productService } from '@/services/product.service'
-import { Header } from '@/components/layout/Header'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { ProductCard } from '@/components/product/ProductCard'
 import { Spinner } from '@/components/ui/Spinner'
@@ -16,6 +15,7 @@ export default function SearchPage() {
   const [searchParams, setSearchParams] = useSearchParams()
 
   const [query, setQuery] = useState(searchParams.get('q') ?? '')
+  const inputRef = useRef<HTMLInputElement>(null)
   const [organicOnly, setOrganicOnly] = useState(false)
   const [page, setPage] = useState(1)
 
@@ -48,26 +48,30 @@ export default function SearchPage() {
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 sm:pb-0">
-      <Header />
-
-      <div className="max-w-6xl mx-auto px-4 py-4">
-        {/* Search bar */}
-        <form onSubmit={handleSearch} className="flex gap-2 mb-4">
-          <button type="button" onClick={() => navigate(-1)} className="p-2 text-gray-500 hover:text-gray-700">
+      {/* Sticky search header — replaces the global Header on this page */}
+      <header className="sticky top-0 z-50 bg-[#ede8e0] border-b border-[#d4c9bb]">
+        <div className="h-[2px] w-full bg-gradient-to-r from-[#d4a84c] via-[#e8c47a] to-[#d4a84c]" />
+        <form onSubmit={handleSearch} className="max-w-6xl mx-auto px-3 h-14 flex items-center gap-2">
+          <button type="button" onClick={() => navigate(-1)}
+            className="p-2 text-[#0d7a7a] hover:bg-[#0d7a7a]/8 rounded-full transition-colors flex-shrink-0">
             <ArrowLeft className="h-5 w-5" />
           </button>
           <div className="flex-1 relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-[#0d7a7a]" />
             <input
+              ref={inputRef}
               type="text"
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               placeholder={t('searchPlaceholder')}
-              className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+              className="w-full pl-9 pr-4 py-2 rounded-full border border-[#0d7a7a]/15 bg-white/70 text-sm outline-none focus:bg-white focus:border-[#0d9488] focus:ring-2 focus:ring-[#0d9488]/15 transition-all"
               autoFocus
             />
           </div>
         </form>
+      </header>
+
+      <div className="max-w-6xl mx-auto px-4 py-4">
 
         {/* Filters */}
         <div className="flex items-center gap-2 mb-4">

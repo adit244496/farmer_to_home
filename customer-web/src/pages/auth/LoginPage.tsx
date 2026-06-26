@@ -94,10 +94,6 @@ export default function LoginPage() {
                 className="relative mx-auto h-28 w-28 object-contain drop-shadow-[0_8px_20px_rgba(15,107,107,0.25)]"
               />
 
-              <p className="relative mt-2 text-[10px] font-semibold uppercase tracking-[0.35em] text-[#0d9488]/70">
-                Fresh · Direct · Trusted
-              </p>
-
               <h1 className="relative mt-4 text-2xl font-bold text-[#115e59]">
                 Welcome back <span className="inline-block">👋</span>
               </h1>

@@ -22,9 +22,6 @@ function CardShell({ children }: { children: React.ReactNode }) {
       <div className="relative overflow-hidden rounded-t-3xl bg-gradient-to-b from-[#f0fdfa] to-white px-6 pt-6 pb-4 text-center">
         <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[#0d9488]/5 blur-2xl" />
         <img src="/logo_new.png" alt="Farmer to Home" className="relative mx-auto h-20 w-20 object-contain drop-shadow-[0_4px_12px_rgba(13,148,136,0.2)]" />
-        <p className="relative mt-1.5 text-[10px] font-semibold uppercase tracking-[0.32em] text-[#0d9488]/60">
-          Fresh · Direct · Trusted
-        </p>
       </div>
       <div className="h-px bg-gradient-to-r from-transparent via-[#0d9488]/15 to-transparent" />
       {children}

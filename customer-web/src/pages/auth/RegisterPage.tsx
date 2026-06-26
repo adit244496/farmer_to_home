@@ -1,10 +1,29 @@
 import { useState } from 'react'
 import { useLocation, useNavigate, Link } from 'react-router-dom'
-import { AlertCircle, CheckCircle, User, Mail, ChevronRight } from 'lucide-react'
+import { AlertCircle, CheckCircle, User, Mail, ChevronRight, Loader2 } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { authService } from '@/services/auth.service'
 import { useAuthStore } from '@/store/authStore'
 import { AuthLayout } from '@/components/layout/AuthLayout'
+
+const ctaStyle = {
+  background: 'linear-gradient(135deg, #115e59 0%, #0d9488 100%)',
+  boxShadow: '0 4px 14px rgba(13,148,136,0.35)',
+}
+
+function CardShell({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="overflow-hidden rounded-3xl bg-white w-full max-w-sm shadow-[0_20px_60px_-15px_rgba(13,148,136,0.2)] ring-1 ring-black/5">
+      {/* Logo header */}
+      <div className="relative overflow-hidden rounded-t-3xl bg-gradient-to-b from-[#f0fdfa] to-white px-6 pt-6 pb-4 text-center">
+        <div className="pointer-events-none absolute inset-x-0 top-0 h-28 bg-[#0d9488]/5 blur-2xl" />
+        <img src="/logo_new.png" alt="Farmer to Home" className="relative mx-auto h-20 w-20 object-contain drop-shadow-[0_4px_12px_rgba(13,148,136,0.2)]" />
+      </div>
+      <div className="h-px bg-gradient-to-r from-transparent via-[#0d9488]/15 to-transparent" />
+      {children}
+    </div>
+  )
+}
 
 export default function RegisterPage() {
   const { t } = useTranslation('auth')
@@ -46,47 +65,26 @@ export default function RegisterPage() {
   if (done) {
     return (
       <AuthLayout>
-        <div className="bg-white rounded-3xl shadow-xl w-full max-w-sm overflow-hidden" style={{ borderTop: '5px solid #1a5c3a' }}>
-          <div className="px-5 pt-5 pb-1 text-center">
-            <div className="flex items-center justify-center gap-2">
-              <div className="flex-1 h-px" style={{ background: 'linear-gradient(to right, transparent, #e8712e55)' }} />
-              <p className="text-[11px] font-bold tracking-[0.2em] uppercase italic" style={{ color: '#e8712e' }}>
-                ✦ Your Trusted Family Farmer ✦
-              </p>
-              <div className="flex-1 h-px" style={{ background: 'linear-gradient(to left, transparent, #e8712e55)' }} />
+        <CardShell>
+          <div className="px-8 py-8 text-center">
+            <div className="bg-teal-50 rounded-full p-4 w-20 h-20 mx-auto mb-4 flex items-center justify-center">
+              <CheckCircle className="h-12 w-12 text-[#0d9488]" />
             </div>
+            <h2 className="text-xl font-bold text-[#115e59] mb-1">Welcome aboard!</h2>
+            <p className="text-gray-400 text-sm">Your account has been set up successfully.</p>
           </div>
-          <div className="p-8 text-center">
-            <div className="bg-green-50 rounded-full p-4 w-20 h-20 mx-auto mb-4 flex items-center justify-center">
-              <CheckCircle className="h-12 w-12 text-green-500" />
-            </div>
-            <h2 className="text-xl font-bold text-gray-900 mb-1">Welcome aboard!</h2>
-            <p className="text-gray-400 text-sm">Your account has been created successfully.</p>
-          </div>
-        </div>
+        </CardShell>
       </AuthLayout>
     )
   }
 
   return (
     <AuthLayout>
-      <div className="bg-white rounded-3xl shadow-xl w-full max-w-sm overflow-hidden" style={{ borderTop: '5px solid #1a5c3a' }}>
-
-        {/* Tagline strip */}
-        <div className="px-5 pt-5 pb-1 text-center">
-          <div className="flex items-center justify-center gap-2">
-            <div className="flex-1 h-px" style={{ background: 'linear-gradient(to right, transparent, #e8712e55)' }} />
-            <p className="text-[11px] font-bold tracking-[0.2em] uppercase italic" style={{ color: '#e8712e' }}>
-              ✦ Your Trusted Family Farmer ✦
-            </p>
-            <div className="flex-1 h-px" style={{ background: 'linear-gradient(to left, transparent, #e8712e55)' }} />
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="px-5 pt-3 pb-2 flex flex-col gap-3">
+      <CardShell>
+        <form onSubmit={handleSubmit} className="px-6 pt-5 pb-2 flex flex-col gap-3">
           {/* Heading */}
           <div>
-            <h2 className="text-xl font-bold text-gray-900 leading-tight">
+            <h2 className="text-lg font-bold text-[#115e59] leading-tight">
               {isFromOTP ? 'Complete Your Profile' : 'Create Account'}
             </h2>
             <p className="text-gray-400 text-xs mt-0.5">
@@ -96,10 +94,10 @@ export default function RegisterPage() {
 
           {/* Verified identifier chip */}
           {(state?.phone || state?.email) && (
-            <div className="flex items-center gap-3 bg-green-50 border border-green-100 rounded-xl px-3 py-2.5">
-              <CheckCircle className="h-4 w-4 text-green-500 flex-shrink-0" />
+            <div className="flex items-center gap-3 bg-teal-50 border border-teal-100 rounded-xl px-3 py-2.5">
+              <CheckCircle className="h-4 w-4 text-[#0d9488] flex-shrink-0" />
               <div>
-                <p className="text-xs text-green-600 font-bold">Verified</p>
+                <p className="text-xs text-[#0f766e] font-bold">Verified</p>
                 <p className="text-sm font-bold text-gray-800">{state?.phone ?? state?.email}</p>
               </div>
             </div>
@@ -115,7 +113,7 @@ export default function RegisterPage() {
 
           {/* Full Name */}
           <div>
-            <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Full Name</label>
+            <label className="block text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1.5">Full Name</label>
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-300" />
               <input
@@ -123,7 +121,7 @@ export default function RegisterPage() {
                 onChange={(e) => { setFullName(e.target.value); setError('') }}
                 placeholder="Your full name"
                 autoFocus
-                className="w-full border border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all"
+                className="w-full border border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-sm outline-none transition focus:border-[#0d9488] focus:ring-2 focus:ring-[#0d9488]/15"
               />
             </div>
           </div>
@@ -131,10 +129,10 @@ export default function RegisterPage() {
           {/* Phone (only if not already verified) */}
           {!state?.phone && (
             <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Mobile Number</label>
-              <div className="flex rounded-xl overflow-hidden border border-gray-200 focus-within:border-primary-500 focus-within:ring-2 focus-within:ring-primary-100 transition-all">
-                <div className="bg-primary-50 px-3 flex items-center border-r border-gray-200 flex-shrink-0">
-                  <span className="text-primary-700 font-bold text-sm">+91</span>
+              <label className="block text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1.5">Mobile Number</label>
+              <div className="flex rounded-xl overflow-hidden border border-gray-200 focus-within:border-[#0d9488] focus-within:ring-2 focus-within:ring-[#0d9488]/15 transition">
+                <div className="bg-teal-50 px-3 flex items-center border-r border-gray-200 flex-shrink-0">
+                  <span className="text-[#0d9488] font-bold text-sm">+91</span>
                 </div>
                 <input
                   type="tel" inputMode="numeric" maxLength={10}
@@ -150,7 +148,7 @@ export default function RegisterPage() {
           {/* Email (only if not already verified) */}
           {!state?.email && (
             <div>
-              <label className="block text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">
+              <label className="block text-xs font-semibold uppercase tracking-wide text-gray-400 mb-1.5">
                 Email <span className="normal-case font-normal text-gray-300">(optional)</span>
               </label>
               <div className="relative">
@@ -159,7 +157,7 @@ export default function RegisterPage() {
                   type="email" value={email}
                   onChange={(e) => { setEmail(e.target.value); setError('') }}
                   placeholder="your@email.com"
-                  className="w-full border border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-sm outline-none focus:border-primary-500 focus:ring-2 focus:ring-primary-100 transition-all"
+                  className="w-full border border-gray-200 rounded-xl pl-9 pr-4 py-2.5 text-sm outline-none transition focus:border-[#0d9488] focus:ring-2 focus:ring-[#0d9488]/15"
                 />
               </div>
             </div>
@@ -169,26 +167,26 @@ export default function RegisterPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 rounded-2xl font-bold text-white text-sm flex items-center justify-center gap-2 transition-all active:scale-95 disabled:opacity-60 mt-1"
-            style={{ background: 'linear-gradient(135deg, #c1440e 0%, #e8712e 100%)', boxShadow: '0 4px 14px rgba(193,68,14,0.4)' }}
+            className="w-full py-3 rounded-xl font-semibold text-white text-sm flex items-center justify-center gap-2 transition-all active:scale-[0.98] disabled:opacity-60 mt-1"
+            style={ctaStyle}
           >
             {loading
-              ? <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" strokeDasharray="30 70" /></svg>
+              ? <Loader2 className="h-4 w-4 animate-spin" />
               : <>{isFromOTP ? 'Complete Registration' : 'Create Account'} <ChevronRight className="h-4 w-4" /></>
             }
           </button>
         </form>
 
         {/* Footer */}
-        <div className="px-5 pt-2 pb-5 text-center">
+        <div className="px-6 pt-3 pb-5 text-center">
           <p className="text-xs text-gray-400">
             {t('alreadyHaveAccount')}{' '}
-            <Link to="/login" className="text-primary-700 font-bold hover:text-primary-900 transition-colors">
+            <Link to="/login" className="text-[#0d9488] font-semibold hover:text-[#0f766e] transition-colors">
               {t('loginHere')}
             </Link>
           </p>
         </div>
-      </div>
+      </CardShell>
     </AuthLayout>
   )
 }
