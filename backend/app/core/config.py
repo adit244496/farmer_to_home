@@ -34,6 +34,14 @@ class Settings(BaseSettings):
 
     # OTP
     OTP_EXPIRY_MINUTES: int = 10
+    FAST2SMS_API_KEY: str = ""
+
+    # SMTP (email OTP)
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = ""
+    SMTP_PASSWORD: str = ""
+    SMTP_FROM_NAME: str = "FarmerToHome"
 
     # Platform
     PLATFORM_COMMISSION_PERCENT: float = 5.0

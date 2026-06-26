@@ -419,6 +419,42 @@ async def verify_email_otp_and_login(
     return user, access_token, refresh_token, is_new_user
 
 
+async def customer_login(
+    phone: Optional[str], email: Optional[str], password: str, db: AsyncSession
+) -> Tuple[User, str, str]:
+    """Login a customer using phone or email + password."""
+    if phone:
+        result = await db.execute(select(User).where(User.phone == phone, User.role == "customer"))
+    else:
+        result = await db.execute(
+            select(User).where(User.email == email.strip().lower(), User.role == "customer")
+        )
+    user = result.scalar_one_or_none()
+
+    if not user or not user.hashed_password or not verify_password(password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+        )
+
+    if not user.is_active:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Account is deactivated",
+        )
+
+    access_token = create_access_token({"sub": str(user.id), "role": user.role})
+    refresh_token = create_refresh_token({"sub": str(user.id), "role": user.role})
+    return user, access_token, refresh_token
+
+
+async def set_customer_password(user: User, password: str, db: AsyncSession) -> None:
+    """Set or update password for a customer account."""
+    user.hashed_password = hash_password(password)
+    user.updated_at = datetime.utcnow()
+    await db.flush()
+
+
 async def logout(token: str, redis: aioredis.Redis) -> None:
     """
     Invalidate the access token by adding to blocklist.

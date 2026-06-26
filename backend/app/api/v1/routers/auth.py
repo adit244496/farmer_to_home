@@ -19,6 +19,8 @@ from app.schemas.auth import (
     RefreshTokenRequest,
     LoginRequest,
     AdminLoginRequest,
+    CustomerLoginRequest,
+    SetPasswordRequest,
 )
 from app.services import auth_service
 
@@ -141,6 +143,30 @@ async def admin_login(
         body.email, body.password, db
     )
     return _build_token_response(user, access_token, refresh_token)
+
+
+@router.post("/customer/login", response_model=TokenResponse, summary="Customer login with password")
+async def customer_login(
+    body: CustomerLoginRequest,
+    db: AsyncSession = Depends(get_db),
+):
+    """Login a customer using phone or email + password."""
+    user, access_token, refresh_token = await auth_service.customer_login(
+        body.phone, body.email, body.password, db
+    )
+    return _build_token_response(user, access_token, refresh_token)
+
+
+@router.post("/set-password/", summary="Set or update password for current user")
+async def set_password(
+    body: SetPasswordRequest,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Set a password on the currently authenticated account."""
+    await auth_service.set_customer_password(current_user, body.password, db)
+    await db.commit()
+    return {"message": "Password set successfully"}
 
 
 @router.post("/token/refresh/", summary="Refresh access token")

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator, model_validator
 from typing import Optional
 
 
@@ -171,4 +171,48 @@ class AdminLoginRequest(BaseModel):
         v = v.strip().lower()
         if "@" not in v or "." not in v.split("@")[-1]:
             raise ValueError("Invalid email address")
+        return v
+
+
+class CustomerLoginRequest(BaseModel):
+    """Login a customer with phone or email + password."""
+    phone: Optional[str] = None
+    email: Optional[str] = None
+    password: str
+
+    @model_validator(mode="after")
+    def require_identifier(self) -> "CustomerLoginRequest":
+        if not self.phone and not self.email:
+            raise ValueError("Either phone or email is required")
+        return self
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        v = v.strip()
+        if not v.isdigit() or len(v) != 10:
+            raise ValueError("Phone must be a 10-digit number")
+        return v
+
+    @field_validator("email")
+    @classmethod
+    def validate_email(cls, v: Optional[str]) -> Optional[str]:
+        if v is None:
+            return v
+        v = v.strip().lower()
+        if "@" not in v or "." not in v.split("@")[-1]:
+            raise ValueError("Invalid email address")
+        return v
+
+
+class SetPasswordRequest(BaseModel):
+    password: str
+
+    @field_validator("password")
+    @classmethod
+    def validate_password(cls, v: str) -> str:
+        if len(v) < 8:
+            raise ValueError("Password must be at least 8 characters")
         return v

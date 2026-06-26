@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
-import { Phone, Mail, Sprout, AlertCircle } from 'lucide-react'
+import { Phone, Mail, Sprout, AlertCircle, Lock, Eye, EyeOff } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { authService } from '@/services/auth.service'
 import { useAuthStore } from '@/store/authStore'
@@ -8,19 +8,36 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 
 type LoginMethod = 'phone' | 'email'
+type LoginMode = 'otp' | 'password'
 
 export default function LoginPage() {
   const { t } = useTranslation('auth')
   const { t: tc } = useTranslation('common')
-  const { language, setLanguage } = useAuthStore()
+  const { language, setLanguage, setUser } = useAuthStore()
   const navigate = useNavigate()
 
+  const [mode, setMode] = useState<LoginMode>('otp')
   const [method, setMethod] = useState<LoginMethod>('phone')
   const [value, setValue] = useState('')
+  const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
-  const validate = (): string => {
+  const switchMode = (m: LoginMode) => {
+    setMode(m)
+    setValue('')
+    setPassword('')
+    setError('')
+  }
+
+  const switchMethod = (m: LoginMethod) => {
+    setMethod(m)
+    setValue('')
+    setError('')
+  }
+
+  const validateIdentifier = (): string => {
     if (method === 'phone') {
       if (!value.trim()) return t('phoneRequired')
       if (!/^\d{10}$/.test(value.trim())) return t('phoneInvalid')
@@ -32,7 +49,7 @@ export default function LoginPage() {
   }
 
   const handleSendOTP = async () => {
-    const err = validate()
+    const err = validateIdentifier()
     if (err) { setError(err); return }
     setError('')
     setLoading(true)
@@ -44,6 +61,25 @@ export default function LoginPage() {
         await authService.requestEmailOTP(value.trim())
         navigate('/auth/otp', { state: { email: value.trim(), method: 'email' } })
       }
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { detail?: string; message?: string } } }
+      setError(e?.response?.data?.detail || e?.response?.data?.message || tc('serverError'))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handlePasswordLogin = async () => {
+    const err = validateIdentifier()
+    if (err) { setError(err); return }
+    if (!password) { setError(t('passwordRequired')); return }
+    setError('')
+    setLoading(true)
+    try {
+      const identifier = method === 'phone' ? { phone: value.trim() } : { email: value.trim() }
+      const result = await authService.loginWithPassword(identifier, password)
+      setUser(result.user, result.access, result.refresh)
+      navigate('/')
     } catch (err: unknown) {
       const e = err as { response?: { data?: { detail?: string; message?: string } } }
       setError(e?.response?.data?.detail || e?.response?.data?.message || tc('serverError'))
@@ -83,10 +119,31 @@ export default function LoginPage() {
           </div>
         </div>
 
-        {/* Method tabs */}
+        {/* Mode tabs: OTP / Password */}
+        <div className="flex bg-gray-100 rounded-xl p-1 mb-5 gap-1">
+          <button
+            onClick={() => switchMode('otp')}
+            className={`flex-1 py-2 rounded-lg text-sm font-medium transition-colors ${
+              mode === 'otp' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-500'
+            }`}
+          >
+            {t('loginWithOTP')}
+          </button>
+          <button
+            onClick={() => switchMode('password')}
+            className={`flex-1 flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition-colors ${
+              mode === 'password' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-500'
+            }`}
+          >
+            <Lock className="h-3.5 w-3.5" />
+            {t('loginWithPassword')}
+          </button>
+        </div>
+
+        {/* Method tabs: Phone / Email */}
         <div className="flex bg-gray-100 rounded-xl p-1 mb-6 gap-1">
           <button
-            onClick={() => { setMethod('phone'); setValue(''); setError('') }}
+            onClick={() => switchMethod('phone')}
             className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-colors ${
               method === 'phone' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-500'
             }`}
@@ -95,7 +152,7 @@ export default function LoginPage() {
             {t('loginViaPhone')}
           </button>
           <button
-            onClick={() => { setMethod('email'); setValue(''); setError('') }}
+            onClick={() => switchMethod('email')}
             className={`flex-1 flex items-center justify-center gap-2 py-2 rounded-lg text-sm font-medium transition-colors ${
               method === 'email' ? 'bg-white text-primary-700 shadow-sm' : 'text-gray-500'
             }`}
@@ -113,7 +170,7 @@ export default function LoginPage() {
           </div>
         )}
 
-        {/* Input */}
+        {/* Identifier input */}
         <div className="mb-4">
           {method === 'phone' ? (
             <Input
@@ -125,7 +182,7 @@ export default function LoginPage() {
               onChange={(e) => { setValue(e.target.value.replace(/\D/g, '')); setError('') }}
               placeholder="10-digit mobile number"
               leftIcon={<Phone className="h-4 w-4" />}
-              onKeyDown={(e) => e.key === 'Enter' && handleSendOTP()}
+              onKeyDown={(e) => e.key === 'Enter' && (mode === 'otp' ? handleSendOTP() : handlePasswordLogin())}
             />
           ) : (
             <Input
@@ -135,16 +192,46 @@ export default function LoginPage() {
               onChange={(e) => { setValue(e.target.value); setError('') }}
               placeholder="your@email.com"
               leftIcon={<Mail className="h-4 w-4" />}
-              onKeyDown={(e) => e.key === 'Enter' && handleSendOTP()}
+              onKeyDown={(e) => e.key === 'Enter' && (mode === 'otp' ? handleSendOTP() : handlePasswordLogin())}
             />
           )}
-          <p className="text-xs text-gray-400 mt-2">
-            {method === 'phone' ? t('otpWillBeSentPhone') : t('otpWillBeSentEmail')}
-          </p>
+          {mode === 'otp' && (
+            <p className="text-xs text-gray-400 mt-2">
+              {method === 'phone' ? t('otpWillBeSentPhone') : t('otpWillBeSentEmail')}
+            </p>
+          )}
         </div>
 
-        <Button fullWidth size="lg" loading={loading} onClick={handleSendOTP}>
-          {t('sendOTP')}
+        {/* Password field (password mode only) */}
+        {mode === 'password' && (
+          <div className="mb-5 relative">
+            <Input
+              label={t('password')}
+              type={showPassword ? 'text' : 'password'}
+              value={password}
+              onChange={(e) => { setPassword(e.target.value); setError('') }}
+              placeholder="••••••••"
+              leftIcon={<Lock className="h-4 w-4" />}
+              onKeyDown={(e) => e.key === 'Enter' && handlePasswordLogin()}
+            />
+            <button
+              type="button"
+              onClick={() => setShowPassword((s) => !s)}
+              className="absolute right-3 top-9 text-gray-400"
+            >
+              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+            <p className="text-xs text-gray-400 mt-1.5">{t('forgotPasswordHint')}</p>
+          </div>
+        )}
+
+        <Button
+          fullWidth
+          size="lg"
+          loading={loading}
+          onClick={mode === 'otp' ? handleSendOTP : handlePasswordLogin}
+        >
+          {mode === 'otp' ? t('sendOTP') : t('login')}
         </Button>
 
         <p className="text-center text-sm text-gray-500 mt-6">

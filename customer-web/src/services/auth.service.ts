@@ -34,6 +34,18 @@ export const authService = {
     return response.data
   },
 
+  loginWithPassword: async (
+    identifier: { phone?: string; email?: string },
+    password: string
+  ): Promise<OTPVerifyResponse> => {
+    const response = await api.post('/auth/customer/login', { ...identifier, password })
+    return response.data
+  },
+
+  setPassword: async (password: string): Promise<void> => {
+    await api.post('/auth/set-password/', { password })
+  },
+
   registerCustomer: async (data: {
     full_name: string
     phone?: string
