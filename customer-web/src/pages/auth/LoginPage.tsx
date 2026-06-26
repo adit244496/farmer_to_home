@@ -217,7 +217,7 @@ export default function LoginPage() {
             {mode === 'otp' ? (
               <button onClick={() => switchMode('password')}
                 className="inline-flex items-center gap-1.5 text-xs text-primary-700 hover:text-primary-900 font-semibold transition-colors">
-                <Lock className="h-3 w-3" /> {t('loginWithPassword')}
+                <Lock className="h-3 w-3" /> Login with Password
               </button>
             ) : (
               <button onClick={() => switchMode('otp')}
