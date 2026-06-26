@@ -41,7 +41,7 @@ const useAuthStore = create<AuthState>((set) => ({
         return
       }
 
-      const response = await api.get('/users/me')
+      const response = await api.get('/users/me/')
       const user: User = response.data
 
       if (user.role !== 'admin') {
