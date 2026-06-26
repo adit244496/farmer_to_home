@@ -49,9 +49,12 @@ class Settings(BaseSettings):
     # CORS
     CORS_ORIGINS: List[str] = [
         "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:5173",
         "http://localhost:8080",
         "http://localhost:8081",
         "https://farmertohome.in",
+        "https://www.farmertohome.in",
     ]
 
     @field_validator("CORS_ORIGINS", mode="before")

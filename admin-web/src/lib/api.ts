@@ -1,7 +1,7 @@
 import axios from 'axios'
 
 const api = axios.create({
-  baseURL: 'http://localhost:8001/api/v1',
+  baseURL: import.meta.env.VITE_API_URL || 'http://localhost:8001/api/v1',
   headers: {
     'Content-Type': 'application/json',
   },
@@ -48,7 +48,7 @@ api.interceptors.response.use(
         if (!refreshToken) throw new Error('No refresh token')
 
         const response = await axios.post(
-          'http://localhost:8001/api/v1/auth/token/refresh/',
+          `${import.meta.env.VITE_API_URL || 'http://localhost:8001/api/v1'}/auth/token/refresh/`,
           { refresh: refreshToken },
         )
 
