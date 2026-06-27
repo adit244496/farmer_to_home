@@ -71,6 +71,9 @@ class Product(Base):
     best_before_date: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
     tags: Mapped[Optional[List]] = mapped_column(JSON, nullable=True, default=list)
     benefits: Mapped[Optional[List]] = mapped_column(JSON, nullable=True, default=list)
+    benefits_mr: Mapped[Optional[List]] = mapped_column(JSON, nullable=True, default=list)
+    critical_difference_en: Mapped[Optional[List]] = mapped_column(JSON, nullable=True, default=list)
+    critical_difference_mr: Mapped[Optional[List]] = mapped_column(JSON, nullable=True, default=list)
     status: Mapped[str] = mapped_column(
         Enum("ACTIVE", "INACTIVE", "OUT_OF_STOCK", name="product_status"),
         default="ACTIVE",

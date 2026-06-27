@@ -397,6 +397,9 @@ async def admin_add_product(
         best_before_date=date_type.fromisoformat(body["best_before_date"]) if body.get("best_before_date") else None,
         tags=list(body.get("tags") or []),
         benefits=list(body.get("benefits") or []),
+        benefits_mr=list(body.get("benefits_mr") or []),
+        critical_difference_en=list(body.get("critical_difference_en") or []),
+        critical_difference_mr=list(body.get("critical_difference_mr") or []),
         status="OUT_OF_STOCK" if stock == 0 else "ACTIVE",
     )
     db.add(product)
@@ -452,6 +455,9 @@ def _serialize_product(p: Product) -> dict:
         "best_before_date": p.best_before_date.isoformat() if p.best_before_date else None,
         "tags": p.tags or [],
         "benefits": p.benefits or [],
+        "benefits_mr": p.benefits_mr or [],
+        "critical_difference_en": p.critical_difference_en or [],
+        "critical_difference_mr": p.critical_difference_mr or [],
         "category_id": str(p.category_id),
         "category_slug": p.category.slug if p.category else "",
         "category_name": p.category.name_en if p.category else "",
@@ -607,7 +613,8 @@ async def admin_patch_product(
     ALLOWED = {
         "name_en", "name_mr", "description_en", "description_mr",
         "price", "unit", "min_order_qty", "is_organic", "is_fresh_farm",
-        "harvest_date", "best_before_date", "tags", "benefits", "category_id",
+        "harvest_date", "best_before_date", "tags", "benefits", "benefits_mr",
+        "critical_difference_en", "critical_difference_mr", "category_id",
         "farmer_id",
     }
     VALID_UNITS = {"kg", "piece", "dozen", "liter", "bundle", "gram", "quintal"}
@@ -632,6 +639,12 @@ async def admin_patch_product(
             product.tags = list(value) if value else []
         elif field == "benefits":
             product.benefits = list(value) if value else []
+        elif field == "benefits_mr":
+            product.benefits_mr = list(value) if value else []
+        elif field == "critical_difference_en":
+            product.critical_difference_en = list(value) if value else []
+        elif field == "critical_difference_mr":
+            product.critical_difference_mr = list(value) if value else []
         elif field == "is_organic":
             product.is_organic = bool(value)
         else:

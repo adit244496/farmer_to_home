@@ -49,17 +49,17 @@ export const productService = {
   },
 
   getProductDetail: async (id: string | number): Promise<Product> => {
-    const response = await api.get(`/products/${id}/`)
+    const response = await api.get(`/products/${id}`)
     return response.data
   },
 
   getProductReviews: async (id: string | number, page = 1) => {
-    const response = await api.get(`/products/${id}/reviews/`, { params: { page } })
+    const response = await api.get(`/products/${id}/reviews`, { params: { page } })
     return response.data
   },
 
   getSimilarProducts: async (id: string | number): Promise<Product[]> => {
-    const response = await api.get(`/products/${id}/similar/`)
+    const response = await api.get(`/products/${id}/similar`)
     return response.data?.results ?? response.data ?? []
   },
 
@@ -67,27 +67,27 @@ export const productService = {
     const response = await api.get('/products/', {
       params: { ordering: '-total_ratings', page_size: 10, ...(is_organic ? { is_organic: true } : {}) },
     })
-    return response.data?.results ?? []
+    return response.data?.items ?? response.data?.results ?? []
   },
 
   getTodayPicks: async (is_organic?: boolean): Promise<Product[]> => {
     const response = await api.get('/products/', {
       params: { ordering: '-created_at', page_size: 10, ...(is_organic ? { is_organic: true } : {}) },
     })
-    return response.data?.results ?? []
+    return response.data?.items ?? response.data?.results ?? []
   },
 
   getOrganicProducts: async (): Promise<Product[]> => {
     const response = await api.get('/products/', {
       params: { is_organic: true, ordering: '-total_ratings', page_size: 10 },
     })
-    return response.data?.results ?? []
+    return response.data?.items ?? response.data?.results ?? []
   },
 
   getCategories: async (): Promise<CategoryItem[]> => {
     try {
       const response = await api.get('/categories/')
-      const data: CategoryItem[] = response.data?.results ?? response.data ?? []
+      const data: CategoryItem[] = response.data?.items ?? response.data?.results ?? response.data ?? []
       return data.length > 0 ? data : FALLBACK_CATEGORIES
     } catch {
       return FALLBACK_CATEGORIES

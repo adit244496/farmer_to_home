@@ -56,6 +56,7 @@ class Settings(BaseSettings):
         "https://farmertohome.in",
         "https://www.farmertohome.in",
     ]
+    # Note: CORS_ORIGINS can be overridden via env var as a comma-separated list or JSON array
 
     @field_validator("CORS_ORIGINS", mode="before")
     @classmethod

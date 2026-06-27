@@ -240,70 +240,67 @@ function CategoryProductCard({ product, language, inCart, adding, onAdd, onClick
   return (
     <div
       onClick={onClick}
-      className="bg-white rounded-xl overflow-hidden shadow-sm border border-gray-100 cursor-pointer active:scale-[0.98] transition-transform"
+      className="bg-white rounded-lg overflow-hidden shadow-sm border border-gray-100 cursor-pointer active:scale-[0.98] transition-transform"
     >
       {/* Image */}
-      <div className="relative aspect-[4/3] bg-gray-50">
+      <div className="relative aspect-square bg-gray-50">
         {image ? (
           <img src={image} alt={name} className="w-full h-full object-cover" />
         ) : (
-          <div className="w-full h-full flex items-center justify-center text-4xl">
+          <div className="w-full h-full flex items-center justify-center text-3xl">
             🥬
           </div>
+        )}
+        {/* Discount badge */}
+        {discount && (
+          <span className="absolute top-1.5 left-1.5 bg-red-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded">
+            {discount}% OFF
+          </span>
+        )}
+        {/* Organic badge */}
+        {product.is_organic && (
+          <span className="absolute bottom-1.5 left-1.5 bg-green-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5">
+            <Leaf className="h-2.5 w-2.5" /> Organic
+          </span>
         )}
         {/* Bookmark */}
         <button
           onClick={(e) => e.stopPropagation()}
-          className="absolute top-2 right-2 p-1 bg-white/80 rounded-full"
+          className="absolute top-1.5 right-1.5 p-1 bg-white/80 rounded-full"
         >
-          <Bookmark className="h-3.5 w-3.5 text-gray-400" />
+          <Bookmark className="h-3 w-3 text-gray-400" />
         </button>
-        {/* Organic dot */}
-        {product.is_organic && (
-          <div className="absolute bottom-2 left-2 w-4 h-4 bg-green-500 rounded-full border-2 border-white" />
-        )}
       </div>
 
       {/* Info */}
-      <div className="p-2 relative">
-        <p className="text-[12px] font-semibold text-gray-900 leading-tight line-clamp-2 mb-1.5">
+      <div className="p-1.5">
+        <p className="text-[11px] font-semibold text-gray-900 leading-tight line-clamp-2 mb-1">
           {name}
         </p>
 
-        {/* Unit pill */}
-        <span className="inline-block bg-blue-50 text-blue-600 text-[10px] font-bold px-1.5 py-0.5 rounded mb-1.5">
-          {product.unit}
-        </span>
-
-        {/* Discount */}
-        {discount && (
-          <p className="text-[11px] font-bold text-green-600 mb-0.5">
-            {discount}% OFF
-          </p>
-        )}
-
         {/* Price row */}
-        <div className="flex items-end justify-between gap-1">
-          <div>
-            <span className="text-[13px] font-bold text-gray-900">₹{product.price}</span>
+        <div className="flex items-center justify-between gap-1">
+          <div className="flex items-baseline gap-1 min-w-0">
+            <span className="text-[12px] font-bold text-gray-900">₹{product.price}</span>
             {originalPrice && (
-              <span className="ml-1 text-[11px] text-gray-400 line-through">₹{originalPrice}</span>
+              <span className="text-[10px] text-gray-400 line-through">₹{originalPrice}</span>
             )}
+            <span className="text-[9px] text-gray-400 truncate">/{product.unit}</span>
           </div>
 
           {/* Add button */}
           <button
             onClick={(e) => { e.stopPropagation(); onAdd() }}
             disabled={adding}
-            className={`flex items-center justify-center w-7 h-7 rounded-lg flex-shrink-0 transition-colors ${
+            className={`flex items-center justify-center w-6 h-6 rounded-md flex-shrink-0 transition-colors ${
               inCart
                 ? 'bg-[#0d9488] text-white'
                 : 'bg-blue-500 text-white hover:bg-blue-600'
             }`}
           >
             {adding
-              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              : <Plus className="h-4 w-4" />
+              ? <Loader2 className="h-3 w-3 animate-spin" />
+              : <Plus className="h-3.5 w-3.5" />
             }
           </button>
         </div>

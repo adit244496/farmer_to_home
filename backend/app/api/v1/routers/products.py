@@ -247,6 +247,9 @@ async def get_product_detail(product_id: UUID, db: AsyncSession = Depends(get_db
         "best_before_date": product.best_before_date.isoformat() if product.best_before_date else None,
         "tags": product.tags,
         "benefits": product.benefits or [],
+        "benefits_mr": product.benefits_mr or [],
+        "critical_difference_en": product.critical_difference_en or [],
+        "critical_difference_mr": product.critical_difference_mr or [],
         "status": product.status,
         "images": [
             {"id": str(img.id), "image_url": img.image_url, "is_primary": img.is_primary, "order": img.display_order}
@@ -265,6 +268,48 @@ async def get_product_detail(product_id: UUID, db: AsyncSession = Depends(get_db
         "created_at": product.created_at.isoformat(),
         "updated_at": product.updated_at.isoformat(),
     }
+
+
+@router.get("/{product_id}/farmers", summary="Get farmers selling this product")
+async def get_product_farmers(product_id: UUID, db: AsyncSession = Depends(get_db)):
+    """Get list of all farmers who have an active listing for this product."""
+    from app.models.product import FarmerProductListing
+    from app.models.user import User
+    from sqlalchemy.orm import selectinload as sil
+
+    result = await db.execute(
+        select(FarmerProductListing)
+        .options(
+            sil(FarmerProductListing.farmer).selectinload(User.farmer_profile),
+            sil(FarmerProductListing.product),
+        )
+        .where(
+            FarmerProductListing.product_id == product_id,
+            FarmerProductListing.status == "ACTIVE",
+            FarmerProductListing.stock > 0,
+        )
+        .order_by(FarmerProductListing.stock.desc())
+    )
+    listings = result.scalars().all()
+    farmers = []
+    for listing in listings:
+        f = listing.farmer
+        if not f:
+            continue
+        fp = f.farmer_profile
+        farmers.append({
+            "farmer_id": str(f.id),
+            "farmer_name": f.name or "",
+            "district": fp.district if fp else None,
+            "taluka": fp.taluka if fp else None,
+            "rating": float(fp.rating) if fp else 0.0,
+            "total_ratings": fp.total_ratings if fp else 0,
+            "profile_photo": fp.profile_photo_url if fp else None,
+            "stock": listing.stock,
+            "price_override": float(listing.price_override) if listing.price_override else None,
+            "unit": listing.product.unit if listing.product else None,
+        })
+    return farmers
 
 
 @router.get("/{product_id}/reviews", summary="Get product reviews")

@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, and_, desc, text
 from sqlalchemy.orm import selectinload
 
-from app.models.product import Product, ProductImage, Category
+from app.models.product import Product, ProductImage, Category, FarmerProductListing
 from app.models.order import Order, OrderItem
 from app.models.user import User, FarmerProfile
 from app.models.review import Review
@@ -54,6 +54,9 @@ async def get_product_detail(
             selectinload(Product.category),
             selectinload(Product.reviews),
             selectinload(Product.discount),
+            selectinload(Product.farmer_listings).selectinload(
+                FarmerProductListing.farmer
+            ).selectinload(User.farmer_profile),
         )
         .where(Product.id == product_id, Product.status != "INACTIVE")
     )

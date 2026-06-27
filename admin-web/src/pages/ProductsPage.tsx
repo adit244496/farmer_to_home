@@ -42,6 +42,9 @@ interface AdminProduct {
   best_before_date: string | null
   tags: string[]
   benefits: string[]
+  benefits_mr: string[]
+  critical_difference_en: string[]
+  critical_difference_mr: string[]
   category_id: string
   category_slug: string
   category_name: string
@@ -254,6 +257,12 @@ function ProductDetailModal({
   const [tagInput, setTagInput] = useState('')
   const [editBenefits, setEditBenefits] = useState<string[]>(product.benefits ?? [])
   const [benefitInput, setBenefitInput] = useState('')
+  const [editBenefitsMr, setEditBenefitsMr] = useState<string[]>(product.benefits_mr ?? [])
+  const [benefitMrInput, setBenefitMrInput] = useState('')
+  const [editCriticalDiffEn, setEditCriticalDiffEn] = useState<string[]>(product.critical_difference_en ?? [])
+  const [criticalDiffEnInput, setCriticalDiffEnInput] = useState('')
+  const [editCriticalDiffMr, setEditCriticalDiffMr] = useState<string[]>(product.critical_difference_mr ?? [])
+  const [criticalDiffMrInput, setCriticalDiffMrInput] = useState('')
   const [editSaving, setEditSaving] = useState(false)
   const [editError, setEditError] = useState('')
 
@@ -410,6 +419,24 @@ function ProductDetailModal({
     setBenefitInput('')
   }
 
+  const handleAddBenefitMr = () => {
+    const b = benefitMrInput.trim()
+    if (b && !editBenefitsMr.includes(b)) setEditBenefitsMr((prev) => [...prev, b])
+    setBenefitMrInput('')
+  }
+
+  const handleAddCriticalDiffEn = () => {
+    const b = criticalDiffEnInput.trim()
+    if (b && !editCriticalDiffEn.includes(b)) setEditCriticalDiffEn((prev) => [...prev, b])
+    setCriticalDiffEnInput('')
+  }
+
+  const handleAddCriticalDiffMr = () => {
+    const b = criticalDiffMrInput.trim()
+    if (b && !editCriticalDiffMr.includes(b)) setEditCriticalDiffMr((prev) => [...prev, b])
+    setCriticalDiffMrInput('')
+  }
+
   const handleSaveEdit = async () => {
     if (!editForm.name_en.trim()) {
       setEditError('Product name (English) is required.')
@@ -436,6 +463,9 @@ function ProductDetailModal({
         best_before_date: editForm.best_before_date || null,
         tags: editTags,
         benefits: editBenefits,
+        benefits_mr: editBenefitsMr,
+        critical_difference_en: editCriticalDiffEn,
+        critical_difference_mr: editCriticalDiffMr,
         category_id: editForm.category_id,
       })
       setEditing(false)
@@ -465,6 +495,9 @@ function ProductDetailModal({
     })
     setEditTags(product.tags ?? [])
     setEditBenefits(product.benefits ?? [])
+    setEditBenefitsMr(product.benefits_mr ?? [])
+    setEditCriticalDiffEn(product.critical_difference_en ?? [])
+    setEditCriticalDiffMr(product.critical_difference_mr ?? [])
     setEditError('')
     setEditing(false)
   }
@@ -992,47 +1025,103 @@ function ProductDetailModal({
                   </div>
                 </div>
 
-                {/* Benefits */}
+                {/* Highlights (Benefits) — English */}
                 <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-2">
                   <label className="block text-xs font-semibold text-amber-800 flex items-center gap-1">
-                    <Sparkles className="h-3.5 w-3.5" /> Product Benefits
-                    <span className="text-xs font-normal text-amber-600 ml-1">— shown as highlights to customers</span>
+                    <Sparkles className="h-3.5 w-3.5" /> Highlights (English)
+                    <span className="text-xs font-normal text-amber-600 ml-1">— shown to customers</span>
                   </label>
                   {editBenefits.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
                       {editBenefits.map((b) => (
-                        <span
-                          key={b}
-                          className="flex items-center gap-1 px-2.5 py-1 bg-white border border-amber-300 text-amber-800 text-xs rounded-full font-medium shadow-sm"
-                        >
+                        <span key={b} className="flex items-center gap-1 px-2.5 py-1 bg-white border border-amber-300 text-amber-800 text-xs rounded-full font-medium shadow-sm">
                           <Sparkles className="h-3 w-3 text-amber-500 flex-shrink-0" />
                           {b}
-                          <button
-                            onClick={() => setEditBenefits((prev) => prev.filter((x) => x !== b))}
-                            className="ml-0.5 hover:text-red-500 transition-colors"
-                          >
-                            <X className="h-3 w-3" />
-                          </button>
+                          <button onClick={() => setEditBenefits((prev) => prev.filter((x) => x !== b))} className="ml-0.5 hover:text-red-500 transition-colors"><X className="h-3 w-3" /></button>
                         </span>
                       ))}
                     </div>
                   )}
                   <div className="flex gap-2">
-                    <input
-                      value={benefitInput}
-                      onChange={(e) => setBenefitInput(e.target.value)}
-                      onKeyDown={(e) => {
-                        if (e.key === 'Enter') { e.preventDefault(); handleAddBenefit() }
-                      }}
+                    <input value={benefitInput} onChange={(e) => setBenefitInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddBenefit() } }}
                       placeholder="e.g. No Pesticides, Rich in Vitamin C…"
-                      className="flex-1 px-2.5 py-1.5 text-sm border border-amber-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white placeholder-amber-300"
-                    />
-                    <button
-                      onClick={handleAddBenefit}
-                      className="px-3 py-1.5 text-xs font-medium bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-lg transition-colors border border-amber-300"
-                    >
-                      <Plus className="h-3.5 w-3.5" />
-                    </button>
+                      className="flex-1 px-2.5 py-1.5 text-sm border border-amber-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white placeholder-amber-300" />
+                    <button onClick={handleAddBenefit} className="px-3 py-1.5 text-xs font-medium bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-lg transition-colors border border-amber-300"><Plus className="h-3.5 w-3.5" /></button>
+                  </div>
+                </div>
+
+                {/* Highlights (Benefits) — Marathi */}
+                <div className="bg-amber-50 border border-amber-200 rounded-xl p-3 space-y-2">
+                  <label className="block text-xs font-semibold text-amber-800 flex items-center gap-1">
+                    <Sparkles className="h-3.5 w-3.5" /> Highlights (Marathi — मराठी)
+                  </label>
+                  {editBenefitsMr.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {editBenefitsMr.map((b) => (
+                        <span key={b} className="flex items-center gap-1 px-2.5 py-1 bg-white border border-amber-300 text-amber-800 text-xs rounded-full font-medium shadow-sm">
+                          <Sparkles className="h-3 w-3 text-amber-500 flex-shrink-0" />
+                          {b}
+                          <button onClick={() => setEditBenefitsMr((prev) => prev.filter((x) => x !== b))} className="ml-0.5 hover:text-red-500 transition-colors"><X className="h-3 w-3" /></button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <input value={benefitMrInput} onChange={(e) => setBenefitMrInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddBenefitMr() } }}
+                      placeholder="उदा. कीटकनाशक नाही, व्हिटॅमिन C ने समृद्ध…"
+                      className="flex-1 px-2.5 py-1.5 text-sm border border-amber-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white placeholder-amber-300" />
+                    <button onClick={handleAddBenefitMr} className="px-3 py-1.5 text-xs font-medium bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-lg transition-colors border border-amber-300"><Plus className="h-3.5 w-3.5" /></button>
+                  </div>
+                </div>
+
+                {/* Critical Difference — English */}
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-2">
+                  <label className="block text-xs font-semibold text-blue-800 flex items-center gap-1">
+                    <Star className="h-3.5 w-3.5" /> Critical Difference (English)
+                    <span className="text-xs font-normal text-blue-600 ml-1">— what makes this product unique</span>
+                  </label>
+                  {editCriticalDiffEn.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {editCriticalDiffEn.map((b) => (
+                        <span key={b} className="flex items-center gap-1 px-2.5 py-1 bg-white border border-blue-300 text-blue-800 text-xs rounded-full font-medium shadow-sm">
+                          {b}
+                          <button onClick={() => setEditCriticalDiffEn((prev) => prev.filter((x) => x !== b))} className="ml-0.5 hover:text-red-500 transition-colors"><X className="h-3 w-3" /></button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <input value={criticalDiffEnInput} onChange={(e) => setCriticalDiffEnInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCriticalDiffEn() } }}
+                      placeholder="e.g. Farm-fresh within 24hrs, Zero cold storage…"
+                      className="flex-1 px-2.5 py-1.5 text-sm border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white placeholder-blue-300" />
+                    <button onClick={handleAddCriticalDiffEn} className="px-3 py-1.5 text-xs font-medium bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg transition-colors border border-blue-300"><Plus className="h-3.5 w-3.5" /></button>
+                  </div>
+                </div>
+
+                {/* Critical Difference — Marathi */}
+                <div className="bg-blue-50 border border-blue-200 rounded-xl p-3 space-y-2">
+                  <label className="block text-xs font-semibold text-blue-800 flex items-center gap-1">
+                    <Star className="h-3.5 w-3.5" /> Critical Difference (Marathi — मराठी)
+                  </label>
+                  {editCriticalDiffMr.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {editCriticalDiffMr.map((b) => (
+                        <span key={b} className="flex items-center gap-1 px-2.5 py-1 bg-white border border-blue-300 text-blue-800 text-xs rounded-full font-medium shadow-sm">
+                          {b}
+                          <button onClick={() => setEditCriticalDiffMr((prev) => prev.filter((x) => x !== b))} className="ml-0.5 hover:text-red-500 transition-colors"><X className="h-3 w-3" /></button>
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                  <div className="flex gap-2">
+                    <input value={criticalDiffMrInput} onChange={(e) => setCriticalDiffMrInput(e.target.value)}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCriticalDiffMr() } }}
+                      placeholder="उदा. शेतातून थेट २४ तासांत, शीतगृह नाही…"
+                      className="flex-1 px-2.5 py-1.5 text-sm border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white placeholder-blue-300" />
+                    <button onClick={handleAddCriticalDiffMr} className="px-3 py-1.5 text-xs font-medium bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg transition-colors border border-blue-300"><Plus className="h-3.5 w-3.5" /></button>
                   </div>
                 </div>
               </div>
@@ -1095,21 +1184,58 @@ function ProductDetailModal({
                   </div>
                 )}
 
-                {/* Benefits highlight section */}
+                {/* Highlights (EN) */}
                 {product.benefits && product.benefits.length > 0 && (
                   <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
                     <p className="text-xs font-semibold text-amber-800 mb-2 flex items-center gap-1">
-                      <Sparkles className="h-3.5 w-3.5" /> Product Benefits
+                      <Sparkles className="h-3.5 w-3.5" /> Highlights (English)
                     </p>
                     <div className="flex flex-wrap gap-1.5">
                       {product.benefits.map((b) => (
-                        <span
-                          key={b}
-                          className="flex items-center gap-1.5 px-3 py-1 bg-white border border-amber-300 text-amber-800 text-xs rounded-full font-medium shadow-sm"
-                        >
-                          <Sparkles className="h-3 w-3 text-amber-500 flex-shrink-0" />
-                          {b}
+                        <span key={b} className="flex items-center gap-1.5 px-3 py-1 bg-white border border-amber-300 text-amber-800 text-xs rounded-full font-medium shadow-sm">
+                          <Sparkles className="h-3 w-3 text-amber-500 flex-shrink-0" />{b}
                         </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Highlights (MR) */}
+                {product.benefits_mr && product.benefits_mr.length > 0 && (
+                  <div className="bg-amber-50 border border-amber-200 rounded-xl p-3">
+                    <p className="text-xs font-semibold text-amber-800 mb-2 flex items-center gap-1">
+                      <Sparkles className="h-3.5 w-3.5" /> Highlights (मराठी)
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {product.benefits_mr.map((b) => (
+                        <span key={b} className="flex items-center gap-1.5 px-3 py-1 bg-white border border-amber-300 text-amber-800 text-xs rounded-full font-medium shadow-sm">
+                          <Sparkles className="h-3 w-3 text-amber-500 flex-shrink-0" />{b}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Critical Difference (EN) */}
+                {product.critical_difference_en && product.critical_difference_en.length > 0 && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+                    <p className="text-xs font-semibold text-blue-800 mb-2 flex items-center gap-1">
+                      <Star className="h-3.5 w-3.5" /> Critical Difference (English)
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {product.critical_difference_en.map((b) => (
+                        <span key={b} className="flex items-center gap-1.5 px-3 py-1 bg-white border border-blue-300 text-blue-800 text-xs rounded-full font-medium shadow-sm">{b}</span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {/* Critical Difference (MR) */}
+                {product.critical_difference_mr && product.critical_difference_mr.length > 0 && (
+                  <div className="bg-blue-50 border border-blue-200 rounded-xl p-3">
+                    <p className="text-xs font-semibold text-blue-800 mb-2 flex items-center gap-1">
+                      <Star className="h-3.5 w-3.5" /> Critical Difference (मराठी)
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {product.critical_difference_mr.map((b) => (
+                        <span key={b} className="flex items-center gap-1.5 px-3 py-1 bg-white border border-blue-300 text-blue-800 text-xs rounded-full font-medium shadow-sm">{b}</span>
                       ))}
                     </div>
                   </div>
@@ -1335,6 +1461,12 @@ function AddProductModal({
   const [tagInput, setTagInput] = useState('')
   const [benefits, setBenefits] = useState<string[]>([])
   const [benefitInput, setBenefitInput] = useState('')
+  const [benefitsMr, setBenefitsMr] = useState<string[]>([])
+  const [benefitMrInput, setBenefitMrInput] = useState('')
+  const [criticalDiffEn, setCriticalDiffEn] = useState<string[]>([])
+  const [criticalDiffEnInput, setCriticalDiffEnInput] = useState('')
+  const [criticalDiffMr, setCriticalDiffMr] = useState<string[]>([])
+  const [criticalDiffMrInput, setCriticalDiffMrInput] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState('')
 
@@ -1358,6 +1490,24 @@ function AddProductModal({
     setBenefitInput('')
   }
 
+  const handleAddBenefitMr = () => {
+    const b = benefitMrInput.trim()
+    if (b && !benefitsMr.includes(b)) setBenefitsMr((prev) => [...prev, b])
+    setBenefitMrInput('')
+  }
+
+  const handleAddCriticalDiffEn = () => {
+    const b = criticalDiffEnInput.trim()
+    if (b && !criticalDiffEn.includes(b)) setCriticalDiffEn((prev) => [...prev, b])
+    setCriticalDiffEnInput('')
+  }
+
+  const handleAddCriticalDiffMr = () => {
+    const b = criticalDiffMrInput.trim()
+    if (b && !criticalDiffMr.includes(b)) setCriticalDiffMr((prev) => [...prev, b])
+    setCriticalDiffMrInput('')
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!form.category_id) { setError('Select a category.'); return }
@@ -1379,6 +1529,9 @@ function AddProductModal({
         description_mr: form.description_mr || null,
         tags,
         benefits,
+        benefits_mr: benefitsMr,
+        critical_difference_en: criticalDiffEn,
+        critical_difference_mr: criticalDiffMr,
       })
       onCreated()
       onClose()
@@ -1515,20 +1668,18 @@ function AddProductModal({
             </div>
           </div>
 
+          {/* Highlights (EN) */}
           <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
             <label className="block text-xs font-semibold text-amber-800 flex items-center gap-1">
-              <Sparkles className="h-3.5 w-3.5" /> Product Benefits
-              <span className="text-xs font-normal text-amber-600 ml-1">— shown as highlights to customers</span>
+              <Sparkles className="h-3.5 w-3.5" /> Highlights (English)
+              <span className="text-xs font-normal text-amber-600 ml-1">— shown to customers</span>
             </label>
             {benefits.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {benefits.map((b) => (
                   <span key={b} className="flex items-center gap-1 px-2.5 py-1 bg-white border border-amber-300 text-amber-800 text-xs rounded-full font-medium shadow-sm">
-                    <Sparkles className="h-3 w-3 text-amber-500 flex-shrink-0" />
-                    {b}
-                    <button type="button" onClick={() => setBenefits((prev) => prev.filter((x) => x !== b))} className="ml-0.5 hover:text-red-500 transition-colors">
-                      <X className="h-3 w-3" />
-                    </button>
+                    <Sparkles className="h-3 w-3 text-amber-500 flex-shrink-0" />{b}
+                    <button type="button" onClick={() => setBenefits((prev) => prev.filter((x) => x !== b))} className="ml-0.5 hover:text-red-500 transition-colors"><X className="h-3 w-3" /></button>
                   </span>
                 ))}
               </div>
@@ -1538,10 +1689,80 @@ function AddProductModal({
                 onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddBenefit() } }}
                 placeholder="e.g. No Pesticides, Rich in Vitamin C…"
                 className="flex-1 px-3 py-2 text-sm border border-amber-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white placeholder-amber-300" />
-              <button type="button" onClick={handleAddBenefit}
-                className="px-3 py-2 text-xs font-medium bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-lg transition-colors border border-amber-300">
-                <Plus className="h-3.5 w-3.5" />
-              </button>
+              <button type="button" onClick={handleAddBenefit} className="px-3 py-2 text-xs font-medium bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-lg transition-colors border border-amber-300"><Plus className="h-3.5 w-3.5" /></button>
+            </div>
+          </div>
+
+          {/* Highlights (MR) */}
+          <div className="bg-amber-50 border border-amber-200 rounded-xl p-4 space-y-2">
+            <label className="block text-xs font-semibold text-amber-800 flex items-center gap-1">
+              <Sparkles className="h-3.5 w-3.5" /> Highlights (Marathi — मराठी)
+            </label>
+            {benefitsMr.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {benefitsMr.map((b) => (
+                  <span key={b} className="flex items-center gap-1 px-2.5 py-1 bg-white border border-amber-300 text-amber-800 text-xs rounded-full font-medium shadow-sm">
+                    <Sparkles className="h-3 w-3 text-amber-500 flex-shrink-0" />{b}
+                    <button type="button" onClick={() => setBenefitsMr((prev) => prev.filter((x) => x !== b))} className="ml-0.5 hover:text-red-500 transition-colors"><X className="h-3 w-3" /></button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="flex gap-2">
+              <input value={benefitMrInput} onChange={(e) => setBenefitMrInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddBenefitMr() } }}
+                placeholder="उदा. कीटकनाशक नाही, व्हिटॅमिन C ने समृद्ध…"
+                className="flex-1 px-3 py-2 text-sm border border-amber-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white placeholder-amber-300" />
+              <button type="button" onClick={handleAddBenefitMr} className="px-3 py-2 text-xs font-medium bg-amber-100 hover:bg-amber-200 text-amber-800 rounded-lg transition-colors border border-amber-300"><Plus className="h-3.5 w-3.5" /></button>
+            </div>
+          </div>
+
+          {/* Critical Difference (EN) */}
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-2">
+            <label className="block text-xs font-semibold text-blue-800 flex items-center gap-1">
+              <Star className="h-3.5 w-3.5" /> Critical Difference (English)
+              <span className="text-xs font-normal text-blue-600 ml-1">— what makes this product unique</span>
+            </label>
+            {criticalDiffEn.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {criticalDiffEn.map((b) => (
+                  <span key={b} className="flex items-center gap-1 px-2.5 py-1 bg-white border border-blue-300 text-blue-800 text-xs rounded-full font-medium shadow-sm">
+                    {b}
+                    <button type="button" onClick={() => setCriticalDiffEn((prev) => prev.filter((x) => x !== b))} className="ml-0.5 hover:text-red-500 transition-colors"><X className="h-3 w-3" /></button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="flex gap-2">
+              <input value={criticalDiffEnInput} onChange={(e) => setCriticalDiffEnInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCriticalDiffEn() } }}
+                placeholder="e.g. Farm-fresh within 24hrs, Zero cold storage…"
+                className="flex-1 px-3 py-2 text-sm border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white placeholder-blue-300" />
+              <button type="button" onClick={handleAddCriticalDiffEn} className="px-3 py-2 text-xs font-medium bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg transition-colors border border-blue-300"><Plus className="h-3.5 w-3.5" /></button>
+            </div>
+          </div>
+
+          {/* Critical Difference (MR) */}
+          <div className="bg-blue-50 border border-blue-200 rounded-xl p-4 space-y-2">
+            <label className="block text-xs font-semibold text-blue-800 flex items-center gap-1">
+              <Star className="h-3.5 w-3.5" /> Critical Difference (Marathi — मराठी)
+            </label>
+            {criticalDiffMr.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {criticalDiffMr.map((b) => (
+                  <span key={b} className="flex items-center gap-1 px-2.5 py-1 bg-white border border-blue-300 text-blue-800 text-xs rounded-full font-medium shadow-sm">
+                    {b}
+                    <button type="button" onClick={() => setCriticalDiffMr((prev) => prev.filter((x) => x !== b))} className="ml-0.5 hover:text-red-500 transition-colors"><X className="h-3 w-3" /></button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <div className="flex gap-2">
+              <input value={criticalDiffMrInput} onChange={(e) => setCriticalDiffMrInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleAddCriticalDiffMr() } }}
+                placeholder="उदा. शेतातून थेट २४ तासांत, शीतगृह नाही…"
+                className="flex-1 px-3 py-2 text-sm border border-blue-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-400 bg-white placeholder-blue-300" />
+              <button type="button" onClick={handleAddCriticalDiffMr} className="px-3 py-2 text-xs font-medium bg-blue-100 hover:bg-blue-200 text-blue-800 rounded-lg transition-colors border border-blue-300"><Plus className="h-3.5 w-3.5" /></button>
             </div>
           </div>
 
