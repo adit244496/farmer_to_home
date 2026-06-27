@@ -197,7 +197,16 @@ async def build_search_query(
         filters.append(Product.category_id == category_id)
 
     if farmer_id:
-        filters.append(Product.farmer_id == farmer_id)
+        has_listing_for_farmer = (
+            select(FarmerProductListing.id)
+            .where(
+                FarmerProductListing.product_id == Product.id,
+                FarmerProductListing.farmer_id == farmer_id,
+                FarmerProductListing.status == "ACTIVE",
+            )
+            .exists()
+        )
+        filters.append(or_(Product.farmer_id == farmer_id, has_listing_for_farmer))
 
     if min_price is not None:
         filters.append(Product.price >= min_price)

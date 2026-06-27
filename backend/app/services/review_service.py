@@ -10,7 +10,7 @@ from sqlalchemy.orm import selectinload
 
 from app.models.review import Review
 from app.models.order import Order, OrderItem
-from app.models.product import Product
+from app.models.product import Product, FarmerProductListing
 from app.models.user import FarmerProfile
 from app.schemas.review import ReviewCreate
 
@@ -71,13 +71,23 @@ async def submit_review(
     db.add(review)
     await db.flush()
 
-    # Recalculate farmer rating for the product's farmer
+    # Recalculate farmer rating — check direct farmer_id first, then listings
     result = await db.execute(
         select(Product).where(Product.id == data.product_id)
     )
     product = result.scalar_one_or_none()
     if product:
-        await calculate_farmer_rating(product.farmer_id, db)
+        farmer_uid = product.farmer_id
+        if not farmer_uid:
+            listing = await db.execute(
+                select(FarmerProductListing.farmer_id)
+                .where(FarmerProductListing.product_id == product.id,
+                       FarmerProductListing.status == "ACTIVE")
+                .limit(1)
+            )
+            farmer_uid = listing.scalar_one_or_none()
+        if farmer_uid:
+            await calculate_farmer_rating(farmer_uid, db)
 
     await db.refresh(review)
     return review
@@ -86,12 +96,19 @@ async def submit_review(
 async def calculate_farmer_rating(farmer_id: uuid.UUID, db: AsyncSession) -> float:
     """
     Calculate and update weighted average rating for a farmer.
-    Uses all reviews for all products of the farmer.
+    Counts reviews for products linked via products.farmer_id OR farmer_product_listings.
     """
     result = await db.execute(
         select(func.avg(Review.rating), func.count(Review.id))
-        .join(Product, Review.product_id == Product.id)
-        .where(Product.farmer_id == farmer_id)
+        .where(
+            Review.product_id.in_(
+                select(Product.id).where(Product.farmer_id == farmer_id)
+                .union(
+                    select(FarmerProductListing.product_id)
+                    .where(FarmerProductListing.farmer_id == farmer_id)
+                )
+            )
+        )
     )
     row = result.one()
     avg_rating = float(row[0]) if row[0] else 0.0

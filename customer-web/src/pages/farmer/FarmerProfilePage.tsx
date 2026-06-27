@@ -101,16 +101,20 @@ export default function FarmerProfilePage() {
                 value={farmer.rating.toFixed(1)}
                 label={`${farmer.total_ratings} ratings`}
               />
-              <StatBox
-                icon={<Package className="h-4 w-4 text-teal-600" />}
-                value={String(farmer.total_orders_fulfilled)}
-                label="Orders"
-              />
-              <StatBox
-                icon={<Wheat className="h-4 w-4 text-amber-500" />}
-                value={String(farmer.farm_size_acres)}
-                label="Acres"
-              />
+              {farmer.total_orders_fulfilled != null && (
+                <StatBox
+                  icon={<Package className="h-4 w-4 text-teal-600" />}
+                  value={String(farmer.total_orders_fulfilled)}
+                  label="Orders"
+                />
+              )}
+              {farmer.farm_size_acres != null && (
+                <StatBox
+                  icon={<Wheat className="h-4 w-4 text-amber-500" />}
+                  value={String(farmer.farm_size_acres)}
+                  label="Acres"
+                />
+              )}
               {memberSince && (
                 <StatBox
                   icon={<Calendar className="h-4 w-4 text-blue-500" />}
