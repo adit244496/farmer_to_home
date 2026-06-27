@@ -32,7 +32,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     i18n.changeLanguage(lang)
     set({ language: lang })
     if (get().user) {
-      api.patch('/users/me/', { language_preference: lang }).catch(() => {})
+      api.patch('/users/me', { language_preference: lang }).catch(() => {})
     }
   },
 
@@ -50,7 +50,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
       return
     }
     try {
-      const response = await api.get('/users/me/')
+      const response = await api.get('/users/me')
       const user: User = response.data
       const lang = user.language_preference ?? 'en'
       i18n.changeLanguage(lang)
@@ -64,7 +64,7 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   refreshUser: async () => {
     try {
-      const response = await api.get('/users/me/')
+      const response = await api.get('/users/me')
       set({ user: response.data })
     } catch {
       // silently fail

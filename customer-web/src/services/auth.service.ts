@@ -57,12 +57,12 @@ export const authService = {
   },
 
   getProfile: async (): Promise<User> => {
-    const response = await api.get('/users/me/')
+    const response = await api.get('/users/me')
     return response.data
   },
 
   updateProfile: async (data: Partial<User>): Promise<User> => {
-    const response = await api.patch('/users/me/', data)
+    const response = await api.patch('/users/me', data)
     return response.data
   },
 

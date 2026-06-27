@@ -1,24 +1,22 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Check, ChevronDown, Leaf, Loader2, Plus, Star, X } from 'lucide-react'
+import { ArrowLeft, Check, ChevronDown, Leaf } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { productService, getCategoryEmoji } from '@/services/product.service'
-import { formatCurrency } from '@/utils/formatting'
 import { Header } from '@/components/layout/Header'
 import { BottomNav } from '@/components/layout/BottomNav'
+import { ProductCard } from '@/components/product/ProductCard'
 import { Spinner } from '@/components/ui/Spinner'
 import { useAuthStore } from '@/store/authStore'
-import { useCartStore } from '@/store/cartStore'
 import { useState, useRef, useEffect } from 'react'
-import type { Product } from '@/types'
 
 type SortKey = '' | 'price' | '-price' | '-created_at' | '-avg_rating'
 
 const SORT_OPTIONS: { value: SortKey; label: string }[] = [
-  { value: '',           label: 'Relevance' },
-  { value: '-avg_rating', label: 'Rating'   },
-  { value: 'price',      label: 'Price: Low to High' },
-  { value: '-price',     label: 'Price: High to Low' },
+  { value: '',            label: 'Relevance' },
+  { value: '-avg_rating', label: 'Rating' },
+  { value: 'price',       label: 'Price: Low to High' },
+  { value: '-price',      label: 'Price: High to Low' },
   { value: '-created_at', label: 'Newest First' },
 ]
 
@@ -27,13 +25,10 @@ export default function CategoryPage() {
   const navigate = useNavigate()
   const { t } = useTranslation('home')
   const { language } = useAuthStore()
-  const addItem = useCartStore((s) => s.addItem)
-  const cartItems = useCartStore((s) => s.items)
 
-  const [sortBy, setSortBy]         = useState<SortKey>('')
-  const [sortOpen, setSortOpen]     = useState(false)
+  const [sortBy, setSortBy]           = useState<SortKey>('')
+  const [sortOpen, setSortOpen]       = useState(false)
   const [organicOnly, setOrganicOnly] = useState(false)
-  const [addingId, setAddingId]     = useState<string | null>(null)
   const sortRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -68,23 +63,18 @@ export default function CategoryPage() {
     ? (language === 'mr' ? currentCat.name_mr : currentCat.name_en)
     : (slug ?? '')
 
-  const handleAdd = async (productId: string) => {
-    setAddingId(productId)
-    try { await addItem(productId, 1) }
-    finally { setAddingId(null) }
-  }
-
   const sortLabel = SORT_OPTIONS.find((o) => o.value === sortBy)?.label ?? 'Sort By'
 
   return (
     <div className="h-dvh flex flex-col bg-gray-50">
-      {/* Full home-screen header */}
       <Header />
 
-      {/* Slim breadcrumb bar */}
+      {/* Breadcrumb */}
       <div className="flex-shrink-0 flex items-center gap-2 bg-white border-b border-gray-100 px-2 py-1.5">
-        <button onClick={() => navigate(-1)}
-          className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0">
+        <button
+          onClick={() => navigate(-1)}
+          className="p-1.5 text-gray-500 hover:bg-gray-100 rounded-full transition-colors flex-shrink-0"
+        >
           <ArrowLeft className="h-4 w-4" />
         </button>
         <h1 className="text-sm font-bold text-gray-800 capitalize">{catName}</h1>
@@ -96,7 +86,7 @@ export default function CategoryPage() {
       {/* Body = sidebar + main */}
       <div className="flex-1 flex overflow-hidden">
 
-        {/* ── Left: Category sidebar ──────────────────────────────────────────── */}
+        {/* ── Category sidebar ── */}
         <aside className="w-[76px] flex-shrink-0 bg-white border-r border-gray-100 overflow-y-auto">
           {categories.map((cat) => {
             const isActive = cat.slug === slug
@@ -117,11 +107,9 @@ export default function CategoryPage() {
                 <div className={`w-12 h-12 rounded-xl overflow-hidden flex items-center justify-center border-2 transition-colors ${
                   isActive ? 'border-[#0d9488]' : 'border-transparent bg-gray-100'
                 }`}>
-                  {cat.icon_url ? (
-                    <img src={cat.icon_url} alt={label} className="w-full h-full object-cover" />
-                  ) : (
-                    <span className="text-2xl leading-none">{emoji}</span>
-                  )}
+                  {cat.icon_url
+                    ? <img src={cat.icon_url} alt={label} className="w-full h-full object-cover" />
+                    : <span className="text-2xl leading-none">{emoji}</span>}
                 </div>
                 <span className={`text-[10px] leading-tight text-center line-clamp-2 w-full ${
                   isActive ? 'font-bold text-[#0d9488]' : 'text-gray-500 font-medium'
@@ -133,12 +121,13 @@ export default function CategoryPage() {
           })}
         </aside>
 
-        {/* ── Right: Filter + Product grid ───────────────────────────────────── */}
+        {/* ── Filter bar + Product grid ── */}
         <main className="flex-1 flex flex-col overflow-hidden">
-          {/* Filter bar — no overflow-x-auto so dropdown isn't clipped */}
+
+          {/* Filter bar */}
           <div className="flex-shrink-0 flex items-center gap-2 px-3 py-2 bg-white border-b border-gray-100">
 
-            {/* Sort By dropdown */}
+            {/* Sort dropdown */}
             <div ref={sortRef} className="relative flex-shrink-0">
               <button
                 onClick={() => setSortOpen((v) => !v)}
@@ -148,7 +137,6 @@ export default function CategoryPage() {
               >
                 {sortLabel} <ChevronDown className="h-3 w-3" />
               </button>
-
               {sortOpen && (
                 <div className="absolute top-full left-0 mt-1 bg-white rounded-xl shadow-lg border border-gray-100 z-30 min-w-[180px] py-1">
                   {SORT_OPTIONS.map((opt) => (
@@ -167,7 +155,7 @@ export default function CategoryPage() {
               )}
             </div>
 
-            {/* Organic toggle — matches ProductCard badge style */}
+            {/* Organic toggle */}
             <button
               onClick={() => setOrganicOnly((v) => !v)}
               className={`flex items-center gap-1 px-3 py-1.5 rounded-full border text-xs font-semibold flex-shrink-0 transition-colors ${
@@ -179,10 +167,9 @@ export default function CategoryPage() {
               <Leaf className="h-3 w-3" />
               Organic
             </button>
-
           </div>
 
-          {/* Product grid */}
+          {/* Product grid — uses the same ProductCard as home page */}
           <div className="flex-1 overflow-y-auto p-2">
             {isLoading ? (
               <div className="flex justify-center py-16"><Spinner /></div>
@@ -194,15 +181,7 @@ export default function CategoryPage() {
             ) : (
               <div className="grid grid-cols-2 gap-2">
                 {products.map((p) => (
-                  <CategoryProductCard
-                    key={p.id}
-                    product={p}
-                    language={language}
-                    inCart={cartItems.some((ci) => ci.product_id === p.id)}
-                    adding={addingId === p.id}
-                    onAdd={() => handleAdd(p.id)}
-                    onClick={() => navigate(`/product/${p.id}`)}
-                  />
+                  <ProductCard key={p.id} product={p} />
                 ))}
               </div>
             )}
@@ -219,210 +198,5 @@ export default function CategoryPage() {
 
       <BottomNav />
     </div>
-  )
-}
-
-// ── Category product card ─────────────────────────────────────────────────────
-interface CardProps {
-  product: Product
-  language: 'en' | 'mr'
-  inCart: boolean
-  adding: boolean
-  onAdd: () => void
-  onClick: () => void
-}
-
-function CategoryProductCard({ product, language, inCart, adding, onAdd, onClick }: CardProps) {
-  const navigate = useNavigate()
-  const [showInfo, setShowInfo] = useState(false)
-
-  const name  = language === 'mr' ? product.name_mr : product.name_en
-  const image = product.primary_image ?? product.images?.[0]?.image_url
-  const discount = product.discount?.discount_percent
-  const originalPrice = discount ? Math.round(product.price / (1 - discount / 100)) : null
-
-  const criticalDiff = language === 'mr'
-    ? (product.critical_difference_mr || product.critical_difference)
-    : product.critical_difference
-  const highlights = (
-    language === 'mr'
-      ? (product.highlights_mr ?? product.highlights ?? product.benefits_mr ?? product.benefits)
-      : (product.highlights ?? product.benefits)
-  ) ?? []
-  const hasInfo = !!(criticalDiff || highlights.length > 0)
-
-  const productRating = product.avg_rating ?? product.rating
-  const farmerRating  = product.farmer_rating ?? product.farmer?.rating
-
-  return (
-    <>
-      <div
-        onClick={onClick}
-        className="bg-white rounded-lg overflow-hidden shadow-sm border border-gray-100 cursor-pointer active:scale-[0.98] transition-transform"
-      >
-        {/* Image — fixed height so images don't dominate the card */}
-        <div className="relative h-[100px] bg-gray-50 overflow-hidden">
-          {image ? (
-            <img src={image} alt={name} className="w-full h-full object-cover" />
-          ) : (
-            <div className="w-full h-full flex items-center justify-center text-3xl">🥬</div>
-          )}
-
-          {/* Discount badge */}
-          {discount && (
-            <span className="absolute top-1 left-1 bg-red-500 text-white text-[9px] font-bold px-1 py-0.5 rounded">
-              {discount}% OFF
-            </span>
-          )}
-
-          {/* Organic badge */}
-          {product.is_organic && (
-            <span className="absolute bottom-1 left-1 bg-green-600 text-white text-[9px] font-bold px-1 py-0.5 rounded-full flex items-center gap-0.5">
-              <Leaf className="h-2 w-2" /> Organic
-            </span>
-          )}
-
-          {/* Product rating — top-right of image */}
-          {productRating != null && (
-            <button
-              onClick={(e) => { e.stopPropagation(); navigate(`/product/${product.id}#reviews`) }}
-              className="absolute top-1 right-1 flex items-center gap-0.5 bg-black/55 px-1.5 py-0.5 rounded hover:bg-black/75 transition-colors"
-            >
-              <Star className="h-2.5 w-2.5 text-yellow-400 fill-yellow-400" />
-              <span className="text-[10px] font-bold text-white">{productRating.toFixed(1)}</span>
-            </button>
-          )}
-
-          {/* Italic "i" — bottom-right, no border/fill */}
-          {hasInfo && (
-            <button
-              onClick={(e) => { e.stopPropagation(); setShowInfo(true) }}
-              className="absolute bottom-1 right-1.5 z-10 italic font-serif text-white text-[13px] font-bold leading-none select-none hover:text-yellow-200 transition-colors"
-              style={{ textShadow: '0 1px 3px rgba(0,0,0,0.75)' }}
-              aria-label="Product info"
-            >
-              i
-            </button>
-          )}
-        </div>
-
-        {/* Info */}
-        <div className="p-1.5">
-          {/* Farmer name + farmer rating */}
-          {product.farmer_name && (
-            <div className="mb-0.5">
-              {product.farmer_id ? (
-                <button
-                  onClick={(e) => { e.stopPropagation(); navigate(`/farmer/${product.farmer_id}`) }}
-                  className="text-xs text-teal-600 hover:underline truncate block text-left w-full leading-tight"
-                >
-                  {product.farmer_name}
-                  {farmerRating != null && (
-                    <span className="text-gray-400 font-normal ml-1">({farmerRating.toFixed(1)})</span>
-                  )}
-                </button>
-              ) : (
-                <span className="text-xs text-gray-500 block truncate leading-tight">
-                  {product.farmer_name}
-                  {farmerRating != null && (
-                    <span className="text-gray-400 ml-1">({farmerRating.toFixed(1)})</span>
-                  )}
-                </span>
-              )}
-            </div>
-          )}
-
-          <p className="text-[11px] font-semibold text-gray-900 leading-tight line-clamp-2 mb-1">
-            {name}
-          </p>
-
-          {/* Price row */}
-          <div className="flex items-center justify-between gap-1">
-            <div className="flex items-baseline gap-1 min-w-0">
-              <span className="text-[12px] font-bold text-gray-900">{formatCurrency(product.price)}</span>
-              {originalPrice && (
-                <span className="text-[10px] text-gray-400 line-through">{formatCurrency(originalPrice)}</span>
-              )}
-              <span className="text-[9px] text-gray-400 truncate">/{product.unit}</span>
-            </div>
-
-            {/* Add button */}
-            <button
-              onClick={(e) => { e.stopPropagation(); onAdd() }}
-              disabled={adding}
-              className={`flex items-center justify-center w-6 h-6 rounded-md flex-shrink-0 transition-colors ${
-                inCart ? 'bg-[#0d9488] text-white' : 'bg-blue-500 text-white hover:bg-blue-600'
-              }`}
-            >
-              {adding
-                ? <Loader2 className="h-3 w-3 animate-spin" />
-                : <Plus className="h-3.5 w-3.5" />
-              }
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Info popup — bottom-sheet on mobile, centered on desktop */}
-      {showInfo && (
-        <div
-          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50"
-          onClick={() => setShowInfo(false)}
-        >
-          <div
-            className="bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* Drag handle (mobile) */}
-            <div className="flex justify-center pt-3 pb-0 sm:hidden">
-              <div className="w-10 h-1 bg-gray-200 rounded-full" />
-            </div>
-
-            {/* Header */}
-            <div className="flex items-center justify-between px-5 pt-3 pb-3 sm:pt-4 sm:border-b sm:border-gray-100">
-              <h3 className="font-bold text-gray-900 text-[15px] pr-2 leading-snug line-clamp-1">{name}</h3>
-              <button
-                onClick={() => setShowInfo(false)}
-                className="flex-shrink-0 p-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100"
-              >
-                <X className="h-5 w-5" />
-              </button>
-            </div>
-
-            {/* Body */}
-            <div className="px-5 pb-6 pt-1 space-y-4 max-h-[72vh] overflow-y-auto">
-              {criticalDiff && (
-                <div className="flex gap-3 bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3">
-                  <span className="text-[18px] leading-none flex-shrink-0 mt-0.5">⭐</span>
-                  <div>
-                    <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest mb-1">
-                      Why It's Different
-                    </p>
-                    <p className="text-sm text-amber-900 leading-relaxed">{criticalDiff}</p>
-                  </div>
-                </div>
-              )}
-              {highlights.length > 0 && (
-                <div>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
-                    Highlights
-                  </p>
-                  <ul className="space-y-3">
-                    {highlights.map((h, i) => (
-                      <li key={i} className="flex items-start gap-3">
-                        <div className="mt-0.5 flex-shrink-0 w-[22px] h-[22px] rounded-full bg-green-500 flex items-center justify-center shadow-sm">
-                          <Check className="h-3 w-3 text-white" strokeWidth={3} />
-                        </div>
-                        <span className="text-sm text-gray-700 leading-snug">{h}</span>
-                      </li>
-                    ))}
-                  </ul>
-                </div>
-              )}
-            </div>
-          </div>
-        </div>
-      )}
-    </>
   )
 }

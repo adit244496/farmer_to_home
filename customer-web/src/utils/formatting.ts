@@ -1,5 +1,5 @@
-export function formatCurrency(amount: number): string {
-  return `₹${amount.toLocaleString('en-IN', { maximumFractionDigits: 0 })}`
+export function formatCurrency(amount: number | string): string {
+  return `₹${Math.round(Number(amount)).toLocaleString('en-IN')}`
 }
 
 export function formatDate(date: string, lang: 'en' | 'mr' = 'en'): string {

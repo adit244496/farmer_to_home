@@ -22,7 +22,7 @@ class PatchUserProfile(BaseModel):
 router = APIRouter(prefix="/users", tags=["Users"])
 
 
-@router.get("/me/", summary="Get current user profile")
+@router.get("/me", summary="Get current user profile")
 async def get_me(current_user=Depends(get_current_user)):
     return {
         "id": str(current_user.id),
@@ -36,7 +36,7 @@ async def get_me(current_user=Depends(get_current_user)):
     }
 
 
-@router.patch("/me/", summary="Update current user profile")
+@router.patch("/me", summary="Update current user profile")
 async def update_me(
     body: PatchUserProfile,
     current_user=Depends(get_current_user),
