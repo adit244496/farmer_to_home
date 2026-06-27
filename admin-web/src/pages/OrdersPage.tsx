@@ -51,7 +51,7 @@ export default function OrdersPage() {
     queryFn: async () => {
       const params: Record<string, string | number> = { page }
       if (status) params.status = status
-      const res = await api.get('/admin/orders/', { params })
+      const res = await api.get('/admin/orders', { params })
       return res.data
     },
   })
@@ -61,7 +61,7 @@ export default function OrdersPage() {
     setOpenDropdown(null)
     setUpdateError(null)
     try {
-      await api.patch(`/admin/orders/${orderId}/status/`, { status: newStatus })
+      await api.patch(`/admin/orders/${orderId}/status`, { status: newStatus })
       queryClient.invalidateQueries({ queryKey: ['orders'] })
     } catch (err: unknown) {
       const axiosErr = err as { response?: { data?: { detail?: string } } }

@@ -62,6 +62,16 @@ async def lifespan(app: FastAPI):
                 "ALTER TABLE reviews ALTER COLUMN order_id DROP NOT NULL"
             ))
             await conn.execute(text("""
+                CREATE TABLE IF NOT EXISTS farmer_media (
+                    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+                    farmer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+                    url VARCHAR(512) NOT NULL,
+                    media_type VARCHAR(10) NOT NULL DEFAULT 'image',
+                    display_order INTEGER NOT NULL DEFAULT 0,
+                    created_at TIMESTAMP NOT NULL DEFAULT NOW()
+                )
+            """))
+            await conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS farmer_product_listings (
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
                     farmer_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,

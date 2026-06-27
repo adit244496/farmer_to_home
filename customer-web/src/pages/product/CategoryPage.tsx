@@ -3,6 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { ArrowLeft, Check, ChevronDown, Leaf, Loader2, Plus, Star, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { productService, getCategoryEmoji } from '@/services/product.service'
+import { formatCurrency } from '@/utils/formatting'
 import { Header } from '@/components/layout/Header'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { Spinner } from '@/components/ui/Spinner'
@@ -338,9 +339,9 @@ function CategoryProductCard({ product, language, inCart, adding, onAdd, onClick
           {/* Price row */}
           <div className="flex items-center justify-between gap-1">
             <div className="flex items-baseline gap-1 min-w-0">
-              <span className="text-[12px] font-bold text-gray-900">₹{product.price}</span>
+              <span className="text-[12px] font-bold text-gray-900">{formatCurrency(product.price)}</span>
               {originalPrice && (
-                <span className="text-[10px] text-gray-400 line-through">₹{originalPrice}</span>
+                <span className="text-[10px] text-gray-400 line-through">{formatCurrency(originalPrice)}</span>
               )}
               <span className="text-[9px] text-gray-400 truncate">/{product.unit}</span>
             </div>

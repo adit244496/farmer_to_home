@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Search, ShoppingCart, User, Globe, X, Loader2 } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import { useAuthStore } from '@/store/authStore'
+import { formatCurrency } from '@/utils/formatting'
 import { useCartStore } from '@/store/cartStore'
 import { useTranslation } from 'react-i18next'
 import { productService, getCategoryEmoji } from '@/services/product.service'
@@ -228,7 +229,7 @@ export function Header() {
                             <p className="text-sm font-semibold text-gray-800 truncate">{name}</p>
                             <p className="text-xs text-gray-400">{p.unit}</p>
                           </div>
-                          <p className="text-sm font-bold text-[#0d9488] flex-shrink-0">₹{p.price}</p>
+                          <p className="text-sm font-bold text-[#0d9488] flex-shrink-0">{formatCurrency(p.price)}</p>
                         </button>
                       )
                     })}

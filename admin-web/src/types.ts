@@ -34,6 +34,13 @@ export interface DashboardStats {
   }[]
 }
 
+export interface FarmerMedia {
+  id: string
+  url: string
+  media_type: 'image' | 'video'
+  display_order: number
+}
+
 export interface Farmer {
   id: string
   full_name: string
@@ -50,9 +57,11 @@ export interface Farmer {
   farm_size_acres: number
   produce_types: string[]
   bio?: string
+  farm_description?: string
   rejection_reason?: string
   total_orders_fulfilled: number
   profile_photo_url?: string
+  media?: FarmerMedia[]
 }
 
 export interface Product {

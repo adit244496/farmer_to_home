@@ -10,6 +10,12 @@ export interface User {
   date_joined: string
 }
 
+export interface FarmerMedia {
+  id: string
+  url: string
+  media_type: 'image' | 'video'
+}
+
 export interface Farmer {
   id: number
   full_name: string
@@ -27,6 +33,7 @@ export interface Farmer {
   total_ratings: number
   total_orders_fulfilled: number
   member_since: string
+  media?: FarmerMedia[]
 }
 
 export interface ProductImage {

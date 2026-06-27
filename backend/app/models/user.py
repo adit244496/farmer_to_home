@@ -87,6 +87,31 @@ class FarmerProfile(Base):
 
     # Relationships
     user: Mapped["User"] = relationship("User", back_populates="farmer_profile")
+    media: Mapped[List["FarmerMedia"]] = relationship(
+        "FarmerMedia", back_populates="farmer_profile",
+        primaryjoin="FarmerProfile.user_id == FarmerMedia.farmer_id",
+        foreign_keys="FarmerMedia.farmer_id",
+        order_by="FarmerMedia.display_order",
+    )
+
+
+class FarmerMedia(Base):
+    __tablename__ = "farmer_media"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    farmer_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+    )
+    url: Mapped[str] = mapped_column(String(512), nullable=False)
+    media_type: Mapped[str] = mapped_column(String(10), nullable=False, default="image")
+    display_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
+
+    farmer_profile: Mapped["FarmerProfile"] = relationship(
+        "FarmerProfile", back_populates="media",
+        primaryjoin="FarmerMedia.farmer_id == FarmerProfile.user_id",
+        foreign_keys="FarmerMedia.farmer_id",
+    )
 
 
 class Address(Base):

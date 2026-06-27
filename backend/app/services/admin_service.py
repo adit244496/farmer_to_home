@@ -302,11 +302,28 @@ async def get_farmer_inventory(
     farmer_id: uuid.UUID,
     db: AsyncSession,
 ) -> List[Product]:
-    """Get all products for a farmer (admin view, includes all statuses)."""
+    """Get all products for a farmer (admin view, includes all statuses).
+    Includes both direct farmer_id products and farmer_product_listings products.
+    """
+    from app.models.product import FarmerProductListing
+    from sqlalchemy import or_
+
+    # Get product IDs from farmer_product_listings
+    listing_result = await db.execute(
+        select(FarmerProductListing.product_id)
+        .where(FarmerProductListing.farmer_id == farmer_id)
+    )
+    listing_product_ids = [r[0] for r in listing_result.all()]
+
     result = await db.execute(
         select(Product)
         .options(selectinload(Product.images), selectinload(Product.category))
-        .where(Product.farmer_id == farmer_id)
+        .where(
+            or_(
+                Product.farmer_id == farmer_id,
+                Product.id.in_(listing_product_ids) if listing_product_ids else False,
+            )
+        )
         .order_by(Product.created_at.desc())
     )
     return result.scalars().all()

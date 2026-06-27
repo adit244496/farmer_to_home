@@ -2,7 +2,7 @@ import uuid
 from typing import Optional
 from datetime import datetime
 
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, UploadFile, File, Form
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, func, update as sa_update
 from sqlalchemy.orm import selectinload
@@ -190,10 +190,10 @@ async def get_farmer_detail(
     db: AsyncSession = Depends(get_db),
 ):
     """Get detailed farmer profile. Admin only."""
-    from sqlalchemy.orm import selectinload
+    from app.models.user import FarmerMedia
     result = await db.execute(
         select(User)
-        .options(selectinload(User.farmer_profile))
+        .options(selectinload(User.farmer_profile).selectinload(User.farmer_profile.property.mapper.class_.media))
         .where(User.id == farmer_id, User.role == "farmer")
     )
     farmer = result.scalar_one_or_none()
@@ -201,6 +201,11 @@ async def get_farmer_detail(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Farmer not found")
 
     p = farmer.farmer_profile
+    media_result = await db.execute(
+        select(FarmerMedia).where(FarmerMedia.farmer_id == farmer_id).order_by(FarmerMedia.display_order)
+    )
+    media_items = media_result.scalars().all()
+
     now = datetime.utcnow()
     return {
         "id": str(farmer.id),
@@ -218,9 +223,14 @@ async def get_farmer_detail(
         "farm_size_acres": float(p.farm_size_acres) if p and p.farm_size_acres else 0.0,
         "produce_types": (p.produce_types or []) if p else [],
         "bio": p.bio if p else None,
+        "farm_description": p.farm_description if p else None,
         "rejection_reason": p.rejection_reason if p else None,
         "total_orders_fulfilled": 0,
         "profile_photo_url": p.profile_photo_url if p else None,
+        "media": [
+            {"id": str(m.id), "url": m.url, "media_type": m.media_type, "display_order": m.display_order}
+            for m in media_items
+        ],
     }
 
 
@@ -259,6 +269,138 @@ async def suspend_farmer(
     """Suspend a farmer and deactivate all their products. Admin only."""
     profile = await admin_service.suspend_farmer(farmer_id, db)
     return {"message": "Farmer suspended", "farmer_id": str(farmer_id), "status": profile.status}
+
+
+@router.put("/farmers/{farmer_id}", summary="Update farmer details")
+async def update_farmer_details(
+    farmer_id: uuid.UUID,
+    body: dict,
+    admin=Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Update farmer name, contact and profile fields. Admin only."""
+    from app.models.user import FarmerProfile
+
+    result = await db.execute(
+        select(User).options(selectinload(User.farmer_profile))
+        .where(User.id == farmer_id, User.role == "farmer")
+    )
+    farmer = result.scalar_one_or_none()
+    if not farmer:
+        raise HTTPException(status_code=404, detail="Farmer not found")
+
+    if "name" in body and body["name"]:
+        farmer.name = body["name"].strip()
+    if "phone" in body and body["phone"]:
+        farmer.phone = body["phone"].strip()
+    if "email" in body:
+        farmer.email = (body["email"] or "").strip() or None
+
+    p = farmer.farmer_profile
+    if p:
+        for field in ["district", "taluka", "village", "bio", "farm_description"]:
+            if field in body:
+                setattr(p, field, (body[field] or "").strip() or None)
+        if "farm_size_acres" in body and body["farm_size_acres"] is not None:
+            try:
+                p.farm_size_acres = float(body["farm_size_acres"])
+            except (ValueError, TypeError):
+                pass
+        if "produce_types" in body:
+            p.produce_types = [t.strip() for t in (body["produce_types"] or []) if t.strip()]
+
+    await db.commit()
+    return {"message": "Farmer updated successfully"}
+
+
+@router.delete("/farmers/{farmer_id}", summary="Delete farmer account")
+async def delete_farmer_account(
+    farmer_id: uuid.UUID,
+    admin=Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Soft-delete a farmer account by deactivating it. Admin only."""
+    result = await db.execute(select(User).where(User.id == farmer_id, User.role == "farmer"))
+    farmer = result.scalar_one_or_none()
+    if not farmer:
+        raise HTTPException(status_code=404, detail="Farmer not found")
+    farmer.is_active = False
+    await db.commit()
+    return {"message": "Farmer account deactivated"}
+
+
+@router.post("/farmers/{farmer_id}/media", summary="Upload media for farmer")
+async def upload_farmer_media(
+    farmer_id: uuid.UUID,
+    file: UploadFile = File(...),
+    media_type: str = Form("image"),
+    admin=Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Upload an image or video for a farmer's profile gallery. Admin only."""
+    from app.models.user import FarmerMedia
+
+    result = await db.execute(select(User).where(User.id == farmer_id, User.role == "farmer"))
+    if not result.scalar_one_or_none():
+        raise HTTPException(status_code=404, detail="Farmer not found")
+
+    ext = (file.filename or "file").rsplit(".", 1)[-1].lower()
+    key = f"farmers/{farmer_id}/{uuid.uuid4()}.{ext}"
+    url: Optional[str] = None
+
+    if settings.AWS_ACCESS_KEY_ID and settings.AWS_SECRET_ACCESS_KEY and settings.AWS_BUCKET_NAME:
+        try:
+            import boto3
+            s3 = boto3.client(
+                "s3",
+                region_name=settings.AWS_REGION,
+                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
+                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
+            )
+            content = await file.read()
+            s3.put_object(
+                Bucket=settings.AWS_BUCKET_NAME,
+                Key=key,
+                Body=content,
+                ContentType=file.content_type or "application/octet-stream",
+            )
+            url = f"https://{settings.AWS_BUCKET_NAME}.s3.{settings.AWS_REGION}.amazonaws.com/{key}"
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=f"Upload failed: {e}")
+    else:
+        raise HTTPException(status_code=503, detail="S3 storage not configured")
+
+    count_result = await db.execute(
+        select(func.count()).select_from(FarmerMedia).where(FarmerMedia.farmer_id == farmer_id)
+    )
+    order = count_result.scalar() or 0
+
+    media = FarmerMedia(id=uuid.uuid4(), farmer_id=farmer_id, url=url, media_type=media_type, display_order=order)
+    db.add(media)
+    await db.commit()
+    return {"id": str(media.id), "url": url, "media_type": media_type, "display_order": order}
+
+
+@router.delete("/farmers/{farmer_id}/media/{media_id}", summary="Delete farmer media")
+async def delete_farmer_media(
+    farmer_id: uuid.UUID,
+    media_id: uuid.UUID,
+    admin=Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Delete a media item from a farmer's gallery. Admin only."""
+    from app.models.user import FarmerMedia
+
+    result = await db.execute(
+        select(FarmerMedia).where(FarmerMedia.id == media_id, FarmerMedia.farmer_id == farmer_id)
+    )
+    media = result.scalar_one_or_none()
+    if not media:
+        raise HTTPException(status_code=404, detail="Media not found")
+
+    await db.delete(media)
+    await db.commit()
+    return {"message": "Media deleted"}
 
 
 @router.get("/farmers/{farmer_id}/inventory", summary="Farmer inventory (admin view)")
@@ -1097,6 +1239,55 @@ async def update_smtp_settings(
 
     await db.commit()
     return {"message": "SMTP settings saved"}
+
+
+@router.get("/settings/sms", summary="Get SMS/WhatsApp OTP settings (API key masked)")
+async def get_sms_settings(
+    admin=Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.models.settings import SiteSetting
+    from app.utils.otp import API_KEY_MASK
+
+    keys = ["fast2sms_api_key", "otp_provider"]
+    result = await db.execute(select(SiteSetting).where(SiteSetting.key.in_(keys)))
+    rows = {row.key: row.value for row in result.scalars().all()}
+
+    has_key = bool(rows.get("fast2sms_api_key") or settings.FAST2SMS_API_KEY)
+    return {
+        "fast2sms_api_key": API_KEY_MASK if has_key else "",
+        "otp_provider": rows.get("otp_provider") or "sms",
+    }
+
+
+@router.patch("/settings/sms", summary="Save SMS/WhatsApp OTP settings")
+async def update_sms_settings(
+    body: dict,
+    admin=Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.models.settings import SiteSetting
+    from app.utils.otp import API_KEY_MASK
+
+    allowed = {"fast2sms_api_key", "otp_provider"}
+    valid_providers = {"sms", "whatsapp"}
+
+    for key, value in body.items():
+        if key not in allowed:
+            continue
+        if key == "fast2sms_api_key" and value == API_KEY_MASK:
+            continue
+        if key == "otp_provider" and value not in valid_providers:
+            raise HTTPException(status_code=400, detail="Invalid provider. Must be 'sms' or 'whatsapp'.")
+        result = await db.execute(select(SiteSetting).where(SiteSetting.key == key))
+        row = result.scalar_one_or_none()
+        if row:
+            row.value = str(value)
+        else:
+            db.add(SiteSetting(key=key, value=str(value)))
+
+    await db.commit()
+    return {"message": "SMS settings saved"}
 
 
 @router.get("/orders", summary="All orders")

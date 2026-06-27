@@ -377,6 +377,8 @@ async def get_farmer_profile(
     db: AsyncSession = Depends(get_db),
 ):
     """Get public profile of an approved farmer."""
+    from app.models.user import FarmerMedia
+
     result = await db.execute(
         select(User)
         .options(selectinload(User.farmer_profile))
@@ -388,6 +390,12 @@ async def get_farmer_profile(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Farmer not found")
 
     profile = farmer.farmer_profile
+
+    media_result = await db.execute(
+        select(FarmerMedia).where(FarmerMedia.farmer_id == farmer_id).order_by(FarmerMedia.display_order)
+    )
+    media_items = media_result.scalars().all()
+
     return {
         "id": str(farmer.id),
         "full_name": farmer.name or "",
@@ -408,6 +416,10 @@ async def get_farmer_profile(
         "approval_status": profile.status,
         "member_since": farmer.created_at.isoformat(),
         "joined_date": farmer.created_at.isoformat(),
+        "media": [
+            {"id": str(m.id), "url": m.url, "media_type": m.media_type}
+            for m in media_items
+        ],
     }
 
 

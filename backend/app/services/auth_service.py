@@ -43,6 +43,7 @@ logger = logging.getLogger(__name__)
 MAX_OTP_PER_HOUR = 3
 
 _SMTP_KEYS = ["smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_from_name"]
+_SMS_KEYS = ["fast2sms_api_key", "otp_provider"]
 
 
 async def _load_smtp_settings(db: AsyncSession) -> Optional[dict]:
@@ -60,6 +61,16 @@ async def _load_smtp_settings(db: AsyncSession) -> Optional[dict]:
     }
 
 
+async def _load_sms_settings(db: AsyncSession) -> dict:
+    """Load Fast2SMS API key and OTP provider from DB."""
+    result = await db.execute(select(SiteSetting).where(SiteSetting.key.in_(_SMS_KEYS)))
+    rows = {row.key: row.value for row in result.scalars().all()}
+    return {
+        "api_key": rows.get("fast2sms_api_key") or None,
+        "provider": rows.get("otp_provider") or "sms",
+    }
+
+
 async def request_otp(phone: str, db: AsyncSession, redis: aioredis.Redis) -> dict:
     """
     Request OTP for phone number with rate limiting (max 3 per hour).
@@ -74,7 +85,8 @@ async def request_otp(phone: str, db: AsyncSession, redis: aioredis.Redis) -> di
     otp = generate_otp()
     await set_otp(phone, otp)
     await increment_rate_limit(phone)
-    await send_otp_sms(phone, otp)
+    sms = await _load_sms_settings(db)
+    await send_otp_sms(phone, otp, api_key_override=sms["api_key"], provider=sms["provider"])
 
     return {"message": f"OTP sent to {phone}", "expires_in": settings.OTP_EXPIRY_MINUTES * 60}
 

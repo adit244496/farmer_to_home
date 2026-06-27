@@ -12,41 +12,63 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 SMTP_PASSWORD_MASK = "••••••"
+API_KEY_MASK = "••••••"
 
 
 def generate_otp() -> str:
     return str(random.randint(100000, 999999))
 
 
-async def send_otp_sms(phone: str, otp: str) -> bool:
-    logger.info(f"[OTP SMS] Sending OTP to phone {phone}")
+async def send_otp_sms(
+    phone: str,
+    otp: str,
+    api_key_override: Optional[str] = None,
+    provider: str = "sms",
+) -> bool:
+    logger.info(f"[OTP] Sending OTP to {phone} via {provider}")
 
-    if not settings.FAST2SMS_API_KEY:
-        logger.warning("[OTP SMS] FAST2SMS_API_KEY not set — printing OTP to console (dev mode)")
+    api_key = api_key_override or settings.FAST2SMS_API_KEY
+
+    if not api_key:
+        logger.warning("[OTP] FAST2SMS_API_KEY not set — printing OTP to console (dev mode)")
         print(f"[DEV] OTP for {phone}: {otp}")
         return True
 
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            response = await client.get(
-                "https://www.fast2sms.com/dev/bulkV2",
-                params={
-                    "authorization": settings.FAST2SMS_API_KEY,
-                    "variables_values": otp,
-                    "route": "otp",
-                    "numbers": phone,
-                },
-                headers={"cache-control": "no-cache"},
-            )
+            if provider == "whatsapp":
+                response = await client.post(
+                    "https://www.fast2sms.com/dev/whatsapp",
+                    json={
+                        "authorization": api_key,
+                        "message": (
+                            f"Your FarmerToHome OTP is *{otp}*. "
+                            f"Valid for {settings.OTP_EXPIRY_MINUTES} minutes. Do not share it."
+                        ),
+                        "numbers": phone,
+                    },
+                    headers={"cache-control": "no-cache"},
+                )
+            else:
+                response = await client.get(
+                    "https://www.fast2sms.com/dev/bulkV2",
+                    params={
+                        "authorization": api_key,
+                        "variables_values": otp,
+                        "route": "otp",
+                        "numbers": phone,
+                    },
+                    headers={"cache-control": "no-cache"},
+                )
             data = response.json()
             if data.get("return") is True:
-                logger.info(f"[OTP SMS] Sent successfully to {phone}")
+                logger.info(f"[OTP {provider.upper()}] Sent successfully to {phone}")
                 return True
             else:
-                logger.error(f"[OTP SMS] Fast2SMS error: {data}")
+                logger.error(f"[OTP {provider.upper()}] Fast2SMS error: {data}")
                 return False
     except Exception as e:
-        logger.error(f"[OTP SMS] Exception sending SMS: {e}")
+        logger.error(f"[OTP {provider.upper()}] Exception: {e}")
         return False
 
 
