@@ -101,10 +101,11 @@ function AddMappingModal({ onClose, onCreated }: { onClose: () => void; onCreate
   const { data: products } = useQuery<AdminProduct[]>({
     queryKey: ['admin-products-by-category', categorySlug],
     queryFn: async () => {
-      const res = await api.get('/admin/products/all', { params: { category: categorySlug, page_size: 200 } })
+      const params: Record<string, string | number> = { page_size: 200 }
+      if (categorySlug) params.category = categorySlug
+      const res = await api.get('/admin/products/all', { params })
       return res.data.items ?? []
     },
-    enabled: !!categorySlug,
   })
 
   const selectedProduct = products?.find((p) => p.id === productId)
@@ -176,8 +177,8 @@ function AddMappingModal({ onClose, onCreated }: { onClose: () => void; onCreate
             <select value={productId} onChange={(e) => setProductId(e.target.value)}
               className="w-full px-3 py-2 text-sm border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-farm-green-500 bg-white">
               <option value="">Select a product…</option>
-              {(categorySlug ? products : [])?.map((p) => (
-                <option key={p.id} value={p.id}>{p.name_en} ({p.category_name})</option>
+              {products?.map((p) => (
+                <option key={p.id} value={p.id}>{p.name_en} {p.category_name ? `(${p.category_name})` : ''}</option>
               ))}
             </select>
             {selectedProduct && (
