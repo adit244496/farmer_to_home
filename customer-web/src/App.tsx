@@ -18,6 +18,7 @@ import EditProfilePage from '@/pages/profile/EditProfilePage'
 import AddressesPage from '@/pages/profile/AddressesPage'
 import FarmerProfilePage from '@/pages/farmer/FarmerProfilePage'
 import SearchPage from '@/pages/home/SearchPage'
+import WishlistPage from '@/pages/wishlist/WishlistPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isInitialized } = useAuthStore()
@@ -55,6 +56,7 @@ export default function App() {
         <Route path="/search" element={<SearchPage />} />
 
         {/* Protected routes */}
+        <Route path="/wishlist" element={<ProtectedRoute><WishlistPage /></ProtectedRoute>} />
         <Route path="/" element={<ProtectedRoute><HomePage /></ProtectedRoute>} />
         <Route path="/cart" element={<ProtectedRoute><CartPage /></ProtectedRoute>} />
         <Route path="/checkout" element={<ProtectedRoute><CheckoutPage /></ProtectedRoute>} />

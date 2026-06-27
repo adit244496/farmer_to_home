@@ -153,9 +153,12 @@ export interface Order {
 }
 
 export interface Review {
-  id: number
-  customer: { id: number; full_name: string; profile_photo?: string }
-  product: number
+  id: string
+  customer: { id: string; full_name: string; profile_photo?: string }
+  product: string
+  product_name_en?: string | null
+  product_name_mr?: string | null
+  product_image?: string | null
   rating: number
   comment: string
   photos?: string[]

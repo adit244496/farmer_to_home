@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 import {
@@ -60,6 +60,11 @@ export default function ProductDetailPage() {
     queryFn: () => productService.searchProducts({ q: product!.name_en, page_size: 20 }),
     enabled: !!product?.name_en,
   })
+
+  // Sync initial qty to min_order_qty once product data loads
+  useEffect(() => {
+    if (product?.min_order_qty) setQty(product.min_order_qty)
+  }, [product?.min_order_qty])
 
   const otherFarmers = useMemo(() => {
     if (!otherListings || !product) return []

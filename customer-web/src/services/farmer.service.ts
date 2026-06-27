@@ -7,9 +7,11 @@ export const farmerService = {
     return response.data
   },
 
-  getReviews: async (id: string | number, page = 1): Promise<PaginatedResponse<Review>> => {
+  getReviews: async (id: string | number, page = 1, rating?: number): Promise<PaginatedResponse<Review>> => {
     try {
-      const response = await api.get(`/farmers/${id}/reviews`, { params: { page } })
+      const params: Record<string, unknown> = { page }
+      if (rating) params.rating = rating
+      const response = await api.get(`/farmers/${id}/reviews`, { params })
       return response.data
     } catch {
       return { items: [], results: [], total: 0, page: 1, page_size: 10, pages: 0 }

@@ -9,7 +9,7 @@ from sqlalchemy.orm import selectinload
 from app.core.database import get_db
 from app.core.security import require_role, get_current_user
 from app.models.user import User, FarmerProfile
-from app.models.product import Product
+from app.models.product import Product, ProductImage
 from app.schemas.product import ProductCreate, ProductUpdate
 from app.schemas.user import FarmerProfileUpdate
 from app.services import farmer_service, product_service
@@ -452,11 +452,13 @@ async def get_farmer_reviews(
     farmer_id: uuid.UUID,
     page: int = Query(1, ge=1),
     page_size: int = Query(20, ge=1, le=100),
+    rating: Optional[int] = Query(None, ge=1, le=5),
     db: AsyncSession = Depends(get_db),
 ):
     """Get all product reviews for a farmer (via direct farmer_id or farmer_product_listings)."""
     from app.models.review import Review
     from app.models.product import FarmerProductListing
+    from sqlalchemy import and_
 
     # Collect product IDs belonging to this farmer
     direct = await db.execute(
@@ -471,8 +473,12 @@ async def get_farmer_reviews(
     if not product_ids:
         return {"items": [], "total": 0, "page": page, "pages": 0, "avg_rating": 0}
 
+    base_where = [Review.product_id.in_(product_ids)]
+    if rating is not None:
+        base_where.append(Review.rating == rating)
+
     total_result = await db.execute(
-        select(func.count(Review.id)).where(Review.product_id.in_(product_ids))
+        select(func.count(Review.id)).where(and_(*base_where))
     )
     total = total_result.scalar() or 0
 
@@ -484,13 +490,22 @@ async def get_farmer_reviews(
     offset = (page - 1) * page_size
     reviews_result = await db.execute(
         select(Review)
-        .options(selectinload(Review.customer), selectinload(Review.product))
-        .where(Review.product_id.in_(product_ids))
+        .options(
+            selectinload(Review.customer),
+            selectinload(Review.product).selectinload(Product.images),
+        )
+        .where(and_(*base_where))
         .order_by(Review.created_at.desc())
         .offset(offset)
         .limit(page_size)
     )
     reviews = reviews_result.scalars().all()
+
+    def _primary_image(p) -> Optional[str]:
+        if not p or not p.images:
+            return None
+        primary = next((img.image_url for img in p.images if img.is_primary), None)
+        return primary or p.images[0].image_url
 
     return {
         "items": [
@@ -506,6 +521,9 @@ async def get_farmer_reviews(
                     "profile_photo": None,
                 },
                 "product": str(r.product_id),
+                "product_name_en": r.product.name_en if r.product else None,
+                "product_name_mr": r.product.name_mr if r.product else None,
+                "product_image": _primary_image(r.product),
             }
             for r in reviews
         ],

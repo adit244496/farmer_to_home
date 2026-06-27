@@ -2,15 +2,13 @@ import { useEffect, useState, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ChevronRight, Leaf, Minus, Plus, ShoppingCart, Sparkles } from 'lucide-react'
+import { ChevronRight, Leaf, Sparkles } from 'lucide-react'
 import { productService, getCategoryEmoji } from '@/services/product.service'
-import { useCartStore } from '@/store/cartStore'
 import { useAuthStore } from '@/store/authStore'
 import { Header } from '@/components/layout/Header'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { ProductCard } from '@/components/product/ProductCard'
 import { Spinner } from '@/components/ui/Spinner'
-import { formatCurrency } from '@/utils/formatting'
 import type { Product } from '@/types'
 
 // ─── Brand palette ────────────────────────────────────────────────────────────
@@ -47,12 +45,10 @@ export default function HomePage() {
   const { t } = useTranslation('home')
   const { user, language } = useAuthStore()
   const navigate = useNavigate()
-  const fetchCart = useCartStore((s) => s.fetchCart)
 
   const [filter, setFilter] = useState<'all' | 'organic'>('all')
   const [bannerIdx, setBannerIdx] = useState(0)
 
-  useEffect(() => { fetchCart() }, [fetchCart])
   useEffect(() => {
     const id = setInterval(() => setBannerIdx((i) => (i + 1) % BANNERS.length), 4500)
     return () => clearInterval(id)
@@ -345,9 +341,6 @@ function HorizontalSection({ title, products, loading, onSeeAll, accentColor = '
         <div className="flex justify-center py-8"><Spinner /></div>
       ) : products.length === 0 ? (
         <p className="text-sm text-[#0d7a7a]/50 py-4">{t('noProductsFound')}</p>
-      ) : products.length === 1 ? (
-        /* Single product: inline row with qty + cart */
-        <SingleProductRow product={products[0]} />
       ) : (
         <div className="relative">
           <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#faf7f0] to-transparent z-10 pointer-events-none" />
@@ -364,100 +357,3 @@ function HorizontalSection({ title, products, loading, onSeeAll, accentColor = '
   )
 }
 
-// ─── Single-product list row (qty stepper + add to cart) ─────────────────────
-function SingleProductRow({ product }: { product: Product }) {
-  const navigate = useNavigate()
-  const { isAuthenticated, language } = useAuthStore()
-  const addItem = useCartStore((s) => s.addItem)
-
-  const minQty = product.min_order_qty ?? 1
-  const inStock = product.stock >= minQty
-
-  const [qty, setQty] = useState(minQty)
-  const [adding, setAdding] = useState(false)
-  const [added, setAdded] = useState(false)
-
-  const name = language === 'mr' ? product.name_mr : product.name_en
-  const image = product.primary_image
-
-  const handleAdd = async (e: React.MouseEvent) => {
-    e.stopPropagation()
-    if (!isAuthenticated) { navigate('/login'); return }
-    setAdding(true)
-    try {
-      await addItem(product.id, qty)
-      setAdded(true)
-      setTimeout(() => setAdded(false), 2000)
-    } finally {
-      setAdding(false)
-    }
-  }
-
-  return (
-    <div
-      className="flex items-center gap-3 bg-white rounded-2xl p-3 border border-gray-100 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-      onClick={() => navigate(`/product/${product.id}`)}
-    >
-      {/* Thumbnail */}
-      <div className="w-[60px] h-[60px] rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
-        {image
-          ? <img src={image} alt={name} className="w-full h-full object-cover" />
-          : <div className="w-full h-full flex items-center justify-center text-2xl">🌿</div>}
-      </div>
-
-      {/* Info */}
-      <div className="flex-1 min-w-0">
-        <p className="text-sm font-semibold text-gray-900 line-clamp-1 leading-tight">{name}</p>
-        {product.farmer_name && (
-          <p className="text-[11px] text-teal-600 truncate mt-0.5">{product.farmer_name}</p>
-        )}
-        <p className="text-base font-bold text-[#0a5c5c] mt-0.5">
-          {formatCurrency(product.price)}
-          <span className="text-[11px] font-normal text-gray-400 ml-0.5">/{product.unit}</span>
-        </p>
-      </div>
-
-      {/* Cart controls */}
-      <div className="flex flex-col items-center gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
-        {inStock ? (
-          <>
-            {/* Qty stepper */}
-            <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
-              <button
-                onClick={() => setQty((q) => Math.max(minQty, q - 1))}
-                className="px-2 py-1 text-gray-600 hover:bg-gray-100 transition-colors"
-              >
-                <Minus className="h-3 w-3" />
-              </button>
-              <span className="px-2 text-xs font-semibold min-w-[1.75rem] text-center">{qty}</span>
-              <button
-                onClick={() => setQty((q) => Math.min(product.stock, q + 1))}
-                className="px-2 py-1 text-gray-600 hover:bg-gray-100 transition-colors"
-              >
-                <Plus className="h-3 w-3" />
-              </button>
-            </div>
-
-            {/* Add to cart */}
-            <button
-              onClick={handleAdd}
-              disabled={adding}
-              className="flex items-center gap-1 bg-[#0a5c5c] text-white text-[11px] font-semibold px-3 py-1.5 rounded-lg hover:bg-[#0d7a7a] transition-colors disabled:opacity-50 w-full justify-center"
-            >
-              {added ? (
-                <span className="text-[11px]">✓ Added</span>
-              ) : (
-                <>
-                  <ShoppingCart className="h-3 w-3" />
-                  {isAuthenticated ? 'Add' : 'Login'}
-                </>
-              )}
-            </button>
-          </>
-        ) : (
-          <span className="text-[11px] text-red-500 font-medium">Out of stock</span>
-        )}
-      </div>
-    </div>
-  )
-}
