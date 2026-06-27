@@ -69,7 +69,7 @@ export function Header() {
     : categories.slice(0, 6)          // show all when no query
 
   const products = productData?.results ?? []
-  const totalCount = productData?.count ?? 0
+  const totalCount = productData?.total ?? 0
   const showProducts = debouncedQuery.length >= 1 && !isFetching && products.length > 0
 
   return (

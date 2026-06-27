@@ -31,5 +31,18 @@
   "fresh": "Fresh",
   "seasonal": "Seasonal",
   "pesticideFree": "Pesticide Free",
-  "organic": "Organic"
+  "organic": "Organic",
+  "whyDifferent": "Why It's Different",
+  "highlights": "Highlights",
+  "benefits": "Benefits",
+  "productInfo": "Product Info",
+  "otherFarmers": "Other Farmers Selling This",
+  "customerReviews": "Customer Reviews",
+  "viewAllReviews": "View All Reviews",
+  "noReviewsYet": "No reviews yet",
+  "verifiedPurchase": "Verified Purchase",
+  "ratingBreakdown": "Rating Breakdown",
+  "writeReview": "Write a Review",
+  "fromFarmer": "From",
+  "soldBy": "Sold by"
 }

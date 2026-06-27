@@ -52,11 +52,17 @@ export interface Product {
   images: ProductImage[]
   category_slug?: string | null
   benefits?: string[]
+  benefits_mr?: string[]
+  highlights?: string[] | null
+  highlights_mr?: string[] | null
+  critical_difference?: string | null
+  critical_difference_mr?: string | null
   tags?: string[]
   // List endpoint: flat farmer fields
   farmer_name?: string | null
   farmer_id?: string | null
   farmer_district?: string | null
+  farmer_rating?: number | null
   // Detail endpoint: nested farmer object
   farmer?: {
     id: string

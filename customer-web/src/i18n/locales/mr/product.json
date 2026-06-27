@@ -31,5 +31,18 @@
   "fresh": "ताजे",
   "seasonal": "हंगामी",
   "pesticideFree": "कीटकनाशक मुक्त",
-  "organic": "सेंद्रिय"
+  "organic": "सेंद्रिय",
+  "whyDifferent": "हे का वेगळे आहे",
+  "highlights": "ठळक वैशिष्ट्ये",
+  "benefits": "फायदे",
+  "productInfo": "उत्पादन माहिती",
+  "otherFarmers": "हे उत्पादन विकणारे इतर शेतकरी",
+  "customerReviews": "ग्राहक समीक्षा",
+  "viewAllReviews": "सर्व समीक्षा पहा",
+  "noReviewsYet": "अजून समीक्षा नाहीत",
+  "verifiedPurchase": "सत्यापित खरेदी",
+  "ratingBreakdown": "रेटिंग विश्लेषण",
+  "writeReview": "समीक्षा लिहा",
+  "fromFarmer": "कडून",
+  "soldBy": "विक्रेता"
 }
