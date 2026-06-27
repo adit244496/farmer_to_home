@@ -1,6 +1,6 @@
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { ArrowLeft, Plus, Loader2, ChevronDown, Check, Leaf, Star, X } from 'lucide-react'
+import { ArrowLeft, Check, ChevronDown, Leaf, Loader2, Plus, Star, X } from 'lucide-react'
 import { useTranslation } from 'react-i18next'
 import { productService, getCategoryEmoji } from '@/services/product.service'
 import { Header } from '@/components/layout/Header'
@@ -362,41 +362,57 @@ function CategoryProductCard({ product, language, inCart, adding, onAdd, onClick
         </div>
       </div>
 
-      {/* Info popup */}
+      {/* Info popup — bottom-sheet on mobile, centered on desktop */}
       {showInfo && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+          className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50"
           onClick={() => setShowInfo(false)}
         >
           <div
-            className="bg-white rounded-2xl shadow-xl w-full max-w-sm overflow-hidden"
+            className="bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
-              <h3 className="font-semibold text-gray-900 text-base line-clamp-1">{name}</h3>
-              <button onClick={() => setShowInfo(false)} className="text-gray-400 hover:text-gray-600 ml-2">
+            {/* Drag handle (mobile) */}
+            <div className="flex justify-center pt-3 pb-0 sm:hidden">
+              <div className="w-10 h-1 bg-gray-200 rounded-full" />
+            </div>
+
+            {/* Header */}
+            <div className="flex items-center justify-between px-5 pt-3 pb-3 sm:pt-4 sm:border-b sm:border-gray-100">
+              <h3 className="font-bold text-gray-900 text-[15px] pr-2 leading-snug line-clamp-1">{name}</h3>
+              <button
+                onClick={() => setShowInfo(false)}
+                className="flex-shrink-0 p-1 rounded-full text-gray-400 hover:text-gray-600 hover:bg-gray-100"
+              >
                 <X className="h-5 w-5" />
               </button>
             </div>
-            <div className="px-5 py-4 space-y-4 max-h-[70vh] overflow-y-auto">
+
+            {/* Body */}
+            <div className="px-5 pb-6 pt-1 space-y-4 max-h-[72vh] overflow-y-auto">
               {criticalDiff && (
-                <div>
-                  <p className="text-xs font-bold text-primary-700 uppercase tracking-wide mb-1.5">
-                    Why It's Different
-                  </p>
-                  <p className="text-sm text-gray-700 leading-relaxed">{criticalDiff}</p>
+                <div className="flex gap-3 bg-amber-50 border border-amber-100 rounded-2xl px-4 py-3">
+                  <span className="text-[18px] leading-none flex-shrink-0 mt-0.5">⭐</span>
+                  <div>
+                    <p className="text-[10px] font-bold text-amber-700 uppercase tracking-widest mb-1">
+                      Why It's Different
+                    </p>
+                    <p className="text-sm text-amber-900 leading-relaxed">{criticalDiff}</p>
+                  </div>
                 </div>
               )}
               {highlights.length > 0 && (
                 <div>
-                  <p className="text-xs font-bold text-primary-700 uppercase tracking-wide mb-1.5">
+                  <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3">
                     Highlights
                   </p>
-                  <ul className="space-y-1.5">
+                  <ul className="space-y-3">
                     {highlights.map((h, i) => (
-                      <li key={i} className="flex items-start gap-2 text-sm text-gray-700">
-                        <span className="text-primary-500 font-bold mt-0.5">✓</span>
-                        <span>{h}</span>
+                      <li key={i} className="flex items-start gap-3">
+                        <div className="mt-0.5 flex-shrink-0 w-[22px] h-[22px] rounded-full bg-green-500 flex items-center justify-center shadow-sm">
+                          <Check className="h-3 w-3 text-white" strokeWidth={3} />
+                        </div>
+                        <span className="text-sm text-gray-700 leading-snug">{h}</span>
                       </li>
                     ))}
                   </ul>

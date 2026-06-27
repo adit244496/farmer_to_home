@@ -28,7 +28,7 @@ export default function FarmerProfilePage() {
 
   const { data: products } = useQuery({
     queryKey: ['farmerProducts', id],
-    queryFn: () => productService.getFarmerProducts(Number(id)),
+    queryFn: () => productService.getFarmerProducts(id!),
     enabled: !!id,
   })
 

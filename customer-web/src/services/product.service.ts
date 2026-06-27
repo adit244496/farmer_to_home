@@ -94,7 +94,7 @@ export const productService = {
     }
   },
 
-  getFarmerProducts: async (farmerId: number, params?: ProductSearchParams): Promise<PaginatedResponse<Product>> => {
+  getFarmerProducts: async (farmerId: string, params?: ProductSearchParams): Promise<PaginatedResponse<Product>> => {
     const response = await api.get('/products/', { params: { ...params, farmer_id: farmerId } })
     return response.data
   },

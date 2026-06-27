@@ -2,7 +2,7 @@ import { useEffect, useState, useRef } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { useNavigate } from 'react-router-dom'
 import { useTranslation } from 'react-i18next'
-import { ChevronRight, Leaf, Sparkles } from 'lucide-react'
+import { ChevronRight, Leaf, Minus, Plus, ShoppingCart, Sparkles } from 'lucide-react'
 import { productService, getCategoryEmoji } from '@/services/product.service'
 import { useCartStore } from '@/store/cartStore'
 import { useAuthStore } from '@/store/authStore'
@@ -10,14 +10,12 @@ import { Header } from '@/components/layout/Header'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { ProductCard } from '@/components/product/ProductCard'
 import { Spinner } from '@/components/ui/Spinner'
+import { formatCurrency } from '@/utils/formatting'
 import type { Product } from '@/types'
 
-// ─── Brand palette (from logo) ────────────────────────────────────────────────
-// Deep teal: #0d7a7a · Teal mid: #0f8a8a · Deep teal dark: #0a5c5c
-// Gold:      #d4a84c · Gold light: #e8c47a · Gold dark: #b8862e
-// Cream bg:  #faf7f0 · Cream warm: #f5efe0
+// ─── Brand palette ────────────────────────────────────────────────────────────
+// Deep teal: #0d7a7a  ·  Gold: #d4a84c  ·  Cream bg: #faf7f0
 
-// ─── Banner slides — admin will control via /home/config/ in future ───────────
 const BANNERS = [
   {
     bg: ['#0a5c5c', '#0f8a8a'],
@@ -25,6 +23,7 @@ const BANNERS = [
     titleKey: 'bannerTitle1',
     subtitleKey: 'bannerSubtitle1',
     emoji: '🌾',
+    bullets: ['No chemicals', 'Farm fresh', 'Daily harvest'],
   },
   {
     bg: ['#b8862e', '#d4a84c'],
@@ -32,6 +31,7 @@ const BANNERS = [
     titleKey: 'bannerTitle2',
     subtitleKey: 'bannerSubtitle2',
     emoji: '🤝',
+    bullets: ['Fair price', 'Direct from farmers', 'Trusted quality'],
   },
   {
     bg: ['#0d7a7a', '#1aa39a'],
@@ -39,8 +39,9 @@ const BANNERS = [
     titleKey: 'bannerTitle3',
     subtitleKey: 'bannerSubtitle3',
     emoji: '🌿',
+    bullets: ['100% natural', 'Certified organic', 'No preservatives'],
   },
-]
+] as const
 
 export default function HomePage() {
   const { t } = useTranslation('home')
@@ -52,38 +53,33 @@ export default function HomePage() {
   const [bannerIdx, setBannerIdx] = useState(0)
 
   useEffect(() => { fetchCart() }, [fetchCart])
-
   useEffect(() => {
     const id = setInterval(() => setBannerIdx((i) => (i + 1) % BANNERS.length), 4500)
     return () => clearInterval(id)
   }, [])
 
   const isOrganic = filter === 'organic'
+  const banner = BANNERS[bannerIdx]
+  const [from] = banner.bg
 
   const { data: categories = [] } = useQuery({
     queryKey: ['categories'],
     queryFn: productService.getCategories,
     staleTime: 5 * 60 * 1000,
   })
-
   const { data: todayPicks = [], isLoading: picksLoading } = useQuery({
     queryKey: ['todayPicks', filter],
     queryFn: () => productService.getTodayPicks(isOrganic),
   })
-
   const { data: trending = [], isLoading: trendingLoading } = useQuery({
     queryKey: ['trending', filter],
     queryFn: () => productService.getTrendingProducts(isOrganic),
   })
-
   const { data: organicProducts = [], isLoading: organicLoading } = useQuery({
     queryKey: ['organic'],
     queryFn: productService.getOrganicProducts,
     enabled: filter === 'all',
   })
-
-  const banner = BANNERS[bannerIdx]
-  const [from, to] = banner.bg
 
   return (
     <div className="min-h-screen bg-[#faf7f0] pb-20 sm:pb-0">
@@ -110,7 +106,7 @@ export default function HomePage() {
           </div>
         )}
 
-        {/* ── Hero Banner + All/Organic toggle ─────────────────────────────── */}
+        {/* ── Hero Banner ───────────────────────────────────────────────────── */}
         <div className="relative overflow-hidden rounded-3xl shadow-[0_10px_30px_-12px_rgba(13,122,122,0.35)] ring-1 ring-black/5">
           {/* Animated gradient backgrounds */}
           {BANNERS.map((b, i) => (
@@ -118,99 +114,119 @@ export default function HomePage() {
               key={i}
               className="absolute inset-0 transition-opacity duration-1000"
               style={{
-                background: `linear-gradient(120deg, ${b.bg[0]} 0%, ${b.bg[1]} 100%)`,
+                background: `linear-gradient(135deg, ${b.bg[0]} 0%, ${b.bg[1]} 100%)`,
                 opacity: i === bannerIdx ? 1 : 0,
               }}
             />
           ))}
 
-          {/* Decorative wheat-glow */}
+          {/* Decorative blobs */}
           <div
             aria-hidden
-            className="absolute -right-10 -top-10 h-44 w-44 rounded-full blur-3xl opacity-40 transition-colors duration-1000"
+            className="absolute -right-8 -top-8 h-40 w-40 rounded-full blur-3xl opacity-40 transition-colors duration-1000"
             style={{ background: banner.accent }}
           />
+          <div aria-hidden className="absolute -left-12 -bottom-10 h-40 w-40 rounded-full blur-3xl opacity-20 bg-white" />
+          {/* Subtle grid pattern overlay */}
           <div
             aria-hidden
-            className="absolute -left-12 -bottom-16 h-48 w-48 rounded-full blur-3xl opacity-25 bg-white"
+            className="absolute inset-0 opacity-[0.04]"
+            style={{
+              backgroundImage: 'repeating-linear-gradient(0deg,#fff 0,#fff 1px,transparent 1px,transparent 20px), repeating-linear-gradient(90deg,#fff 0,#fff 1px,transparent 1px,transparent 20px)',
+            }}
           />
 
-          {/* Content row */}
-          <div className="relative flex items-center justify-between gap-3 px-5 py-5 sm:py-6 min-h-[110px]">
-            {/* Left — title + subtitle */}
-            <div className="flex-1 min-w-0 text-white">
-              <div className="flex items-center gap-2 mb-1">
-                <span
-                  className="grid place-items-center h-7 w-7 rounded-full text-base shadow-md"
-                  style={{ background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(4px)' }}
-                >
-                  {banner.emoji}
-                </span>
-                <h2 className="text-base sm:text-lg font-bold leading-tight tracking-tight drop-shadow-sm">
+          {/* ── Content ── */}
+          <div className="relative px-5 pt-5 pb-4">
+
+            {/* Row 1: title + large emoji */}
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <h2 className="text-[18px] sm:text-xl font-extrabold text-white leading-tight tracking-tight drop-shadow-sm">
                   {t(banner.titleKey as never)}
                 </h2>
+                <p className="text-white/75 text-[11px] sm:text-xs mt-0.5 leading-snug">
+                  {t(banner.subtitleKey as never)}
+                </p>
               </div>
-              <p className="text-white/85 text-xs sm:text-sm leading-snug max-w-md">
-                {t(banner.subtitleKey as never)}
-              </p>
+              <span
+                className="text-5xl sm:text-6xl leading-none drop-shadow-lg flex-shrink-0 -mt-1"
+                style={{ filter: 'drop-shadow(0 4px 8px rgba(0,0,0,0.25))' }}
+              >
+                {banner.emoji}
+              </span>
             </div>
 
-            {/* Right — All | Organic toggle */}
-            <div
-              className="flex items-center gap-0.5 flex-shrink-0 rounded-full p-1 ring-1 ring-white/25"
-              style={{ background: 'rgba(255,255,255,0.14)', backdropFilter: 'blur(6px)' }}
-            >
-              <button
-                onClick={() => setFilter('all')}
-                className="flex items-center justify-center px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
-                style={
-                  filter === 'all'
-                    ? { background: '#fff', color: from, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }
-                    : { color: '#fff' }
-                }
-              >
-                {t('allProducts')}
-              </button>
-              <button
-                onClick={() => setFilter('organic')}
-                className="flex items-center justify-center gap-1 px-3 py-1.5 rounded-full text-xs font-semibold transition-all"
-                style={
-                  filter === 'organic'
-                    ? { background: '#fff', color: '#0a5c5c', boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }
-                    : { color: '#fff' }
-                }
-              >
-                <Leaf className="h-3 w-3" />
-                {t('organicOnly')}
-              </button>
+            {/* Row 2: bullet pills */}
+            <div className="flex flex-wrap gap-1.5 mt-3">
+              {banner.bullets.map((b, i) => (
+                <span
+                  key={i}
+                  className="flex items-center gap-1.5 text-[11px] font-medium text-white/95 rounded-full px-2.5 py-1"
+                  style={{ background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(4px)' }}
+                >
+                  <span
+                    className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+                    style={{ background: banner.accent }}
+                  />
+                  {b}
+                </span>
+              ))}
+            </div>
+
+            {/* Slide dots */}
+            <div className="flex justify-center gap-1.5 mt-3.5">
+              {BANNERS.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => setBannerIdx(i)}
+                  aria-label={`Slide ${i + 1}`}
+                  className="h-1.5 rounded-full transition-all"
+                  style={{
+                    width: i === bannerIdx ? 20 : 6,
+                    background: i === bannerIdx ? '#fff' : 'rgba(255,255,255,0.40)',
+                  }}
+                />
+              ))}
             </div>
           </div>
 
-          {/* Dot indicators */}
-          <div className="absolute bottom-2.5 left-1/2 -translate-x-1/2 flex gap-1.5">
-            {BANNERS.map((_, i) => (
-              <button
-                key={i}
-                onClick={() => setBannerIdx(i)}
-                aria-label={`Slide ${i + 1}`}
-                className="h-1.5 rounded-full transition-all"
-                style={{
-                  width: i === bannerIdx ? 20 : 6,
-                  background: i === bannerIdx ? '#fff' : 'rgba(255,255,255,0.45)',
-                }}
-              />
-            ))}
+          {/* Row 3: full-width All / Organic toggle strip */}
+          <div
+            className="relative flex gap-2 px-4 py-3"
+            style={{ background: 'rgba(0,0,0,0.12)', backdropFilter: 'blur(4px)', borderTop: '1px solid rgba(255,255,255,0.12)' }}
+          >
+            <button
+              onClick={() => setFilter('all')}
+              className="flex-1 flex items-center justify-center py-1.5 rounded-full text-xs font-semibold transition-all"
+              style={
+                filter === 'all'
+                  ? { background: '#fff', color: from, boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }
+                  : { background: 'rgba(255,255,255,0.15)', color: '#fff' }
+              }
+            >
+              {t('allProducts')}
+            </button>
+            <button
+              onClick={() => setFilter('organic')}
+              className="flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-full text-xs font-semibold transition-all"
+              style={
+                filter === 'organic'
+                  ? { background: '#fff', color: '#0a5c5c', boxShadow: '0 2px 8px rgba(0,0,0,0.18)' }
+                  : { background: 'rgba(255,255,255,0.15)', color: '#fff' }
+              }
+            >
+              <Leaf className="h-3 w-3" />
+              {t('organicOnly')}
+            </button>
           </div>
         </div>
 
-
-        {/* ── Section heading ──────────────────────────────────────────────── */}
+        {/* ── Shop by category ─────────────────────────────────────────────── */}
         <SectionHeading title="Shop by category" icon={<Sparkles className="h-3.5 w-3.5" />} />
-
-        {/* ── Category Slider ──────────────────────────────────────────────── */}
         <GlossySlider categories={categories} language={language} />
 
-        {/* ── Today's Picks ────────────────────────────────────────────────── */}
+        {/* ── Today's Picks ─────────────────────────────────────────────────── */}
         <HorizontalSection
           title={t('todaysPicks')}
           products={todayPicks}
@@ -218,7 +234,7 @@ export default function HomePage() {
           onSeeAll={() => navigate(`/search?sort=new${isOrganic ? '&is_organic=true' : ''}`)}
         />
 
-        {/* ── Trending ─────────────────────────────────────────────────────── */}
+        {/* ── Trending ──────────────────────────────────────────────────────── */}
         <HorizontalSection
           title={t('trending')}
           products={trending}
@@ -226,7 +242,7 @@ export default function HomePage() {
           onSeeAll={() => navigate(`/search?sort=trending${isOrganic ? '&is_organic=true' : ''}`)}
         />
 
-        {/* ── Organic Picks (only in All mode) ─────────────────────────────── */}
+        {/* ── Organic Picks ─────────────────────────────────────────────────── */}
         {filter === 'all' && (
           <HorizontalSection
             title="🌿 Organic Picks"
@@ -272,7 +288,6 @@ function GlossySlider({ categories, language }: { categories: CategoryList; lang
         {categories.map((cat) => {
           const emoji = getCategoryEmoji(cat.slug)
           const label = language === 'mr' ? cat.name_mr : cat.name_en
-
           return (
             <button
               key={cat.id}
@@ -283,15 +298,12 @@ function GlossySlider({ categories, language }: { categories: CategoryList; lang
                 className="w-[68px] h-[68px] rounded-2xl overflow-hidden flex items-center justify-center transition-all duration-200 group-hover:-translate-y-0.5"
                 style={{
                   background: 'linear-gradient(145deg, #ffffff 0%, #f5efe0 100%)',
-                  boxShadow:
-                    '0 1px 0 0 rgba(255,255,255,0.9) inset, 0 4px 12px -4px rgba(13,122,122,0.20), 0 0 0 1px rgba(13,122,122,0.08)',
+                  boxShadow: '0 1px 0 0 rgba(255,255,255,0.9) inset, 0 4px 12px -4px rgba(13,122,122,0.20), 0 0 0 1px rgba(13,122,122,0.08)',
                 }}
               >
-                {cat.icon_url ? (
-                  <img src={cat.icon_url} alt={label} className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-[30px] leading-none">{emoji}</span>
-                )}
+                {cat.icon_url
+                  ? <img src={cat.icon_url} alt={label} className="w-full h-full object-cover" />
+                  : <span className="text-[30px] leading-none">{emoji}</span>}
               </div>
               <span className="text-[11px] font-semibold text-[#0a5c5c] text-center w-[68px] line-clamp-2 leading-tight group-hover:text-[#b8862e] transition-colors">
                 {label}
@@ -313,33 +325,18 @@ interface HorizontalSectionProps {
   accentColor?: 'teal' | 'gold'
 }
 
-function HorizontalSection({
-  title,
-  products,
-  loading,
-  onSeeAll,
-  accentColor = 'teal',
-}: HorizontalSectionProps) {
+function HorizontalSection({ title, products, loading, onSeeAll, accentColor = 'teal' }: HorizontalSectionProps) {
   const { t } = useTranslation('home')
-  const seeAllCls =
-    accentColor === 'gold'
-      ? 'text-[#b8862e] hover:text-[#8a6420]'
-      : 'text-[#0d7a7a] hover:text-[#0a5c5c]'
+  const seeAllCls = accentColor === 'gold' ? 'text-[#b8862e] hover:text-[#8a6420]' : 'text-[#0d7a7a] hover:text-[#0a5c5c]'
 
   return (
     <section>
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-2 min-w-0">
-          <span
-            className="h-5 w-1 rounded-full shrink-0"
-            style={{ background: accentColor === 'gold' ? '#d4a84c' : '#0d7a7a' }}
-          />
+          <span className="h-5 w-1 rounded-full shrink-0" style={{ background: accentColor === 'gold' ? '#d4a84c' : '#0d7a7a' }} />
           <h3 className="font-bold text-[#0a5c5c] tracking-tight truncate">{title}</h3>
         </div>
-        <button
-          onClick={onSeeAll}
-          className={`flex items-center gap-0.5 text-sm font-semibold ${seeAllCls} shrink-0`}
-        >
+        <button onClick={onSeeAll} className={`flex items-center gap-0.5 text-sm font-semibold ${seeAllCls} shrink-0`}>
           {t('seeAll')} <ChevronRight className="h-4 w-4" />
         </button>
       </div>
@@ -348,6 +345,9 @@ function HorizontalSection({
         <div className="flex justify-center py-8"><Spinner /></div>
       ) : products.length === 0 ? (
         <p className="text-sm text-[#0d7a7a]/50 py-4">{t('noProductsFound')}</p>
+      ) : products.length === 1 ? (
+        /* Single product: inline row with qty + cart */
+        <SingleProductRow product={products[0]} />
       ) : (
         <div className="relative">
           <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#faf7f0] to-transparent z-10 pointer-events-none" />
@@ -361,5 +361,103 @@ function HorizontalSection({
         </div>
       )}
     </section>
+  )
+}
+
+// ─── Single-product list row (qty stepper + add to cart) ─────────────────────
+function SingleProductRow({ product }: { product: Product }) {
+  const navigate = useNavigate()
+  const { isAuthenticated, language } = useAuthStore()
+  const addItem = useCartStore((s) => s.addItem)
+
+  const minQty = product.min_order_qty ?? 1
+  const inStock = product.stock >= minQty
+
+  const [qty, setQty] = useState(minQty)
+  const [adding, setAdding] = useState(false)
+  const [added, setAdded] = useState(false)
+
+  const name = language === 'mr' ? product.name_mr : product.name_en
+  const image = product.primary_image
+
+  const handleAdd = async (e: React.MouseEvent) => {
+    e.stopPropagation()
+    if (!isAuthenticated) { navigate('/login'); return }
+    setAdding(true)
+    try {
+      await addItem(product.id, qty)
+      setAdded(true)
+      setTimeout(() => setAdded(false), 2000)
+    } finally {
+      setAdding(false)
+    }
+  }
+
+  return (
+    <div
+      className="flex items-center gap-3 bg-white rounded-2xl p-3 border border-gray-100 shadow-sm cursor-pointer hover:shadow-md transition-shadow"
+      onClick={() => navigate(`/product/${product.id}`)}
+    >
+      {/* Thumbnail */}
+      <div className="w-[60px] h-[60px] rounded-xl overflow-hidden bg-gray-100 flex-shrink-0">
+        {image
+          ? <img src={image} alt={name} className="w-full h-full object-cover" />
+          : <div className="w-full h-full flex items-center justify-center text-2xl">🌿</div>}
+      </div>
+
+      {/* Info */}
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-semibold text-gray-900 line-clamp-1 leading-tight">{name}</p>
+        {product.farmer_name && (
+          <p className="text-[11px] text-teal-600 truncate mt-0.5">{product.farmer_name}</p>
+        )}
+        <p className="text-base font-bold text-[#0a5c5c] mt-0.5">
+          {formatCurrency(product.price)}
+          <span className="text-[11px] font-normal text-gray-400 ml-0.5">/{product.unit}</span>
+        </p>
+      </div>
+
+      {/* Cart controls */}
+      <div className="flex flex-col items-center gap-1.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+        {inStock ? (
+          <>
+            {/* Qty stepper */}
+            <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden">
+              <button
+                onClick={() => setQty((q) => Math.max(minQty, q - 1))}
+                className="px-2 py-1 text-gray-600 hover:bg-gray-100 transition-colors"
+              >
+                <Minus className="h-3 w-3" />
+              </button>
+              <span className="px-2 text-xs font-semibold min-w-[1.75rem] text-center">{qty}</span>
+              <button
+                onClick={() => setQty((q) => Math.min(product.stock, q + 1))}
+                className="px-2 py-1 text-gray-600 hover:bg-gray-100 transition-colors"
+              >
+                <Plus className="h-3 w-3" />
+              </button>
+            </div>
+
+            {/* Add to cart */}
+            <button
+              onClick={handleAdd}
+              disabled={adding}
+              className="flex items-center gap-1 bg-[#0a5c5c] text-white text-[11px] font-semibold px-3 py-1.5 rounded-lg hover:bg-[#0d7a7a] transition-colors disabled:opacity-50 w-full justify-center"
+            >
+              {added ? (
+                <span className="text-[11px]">✓ Added</span>
+              ) : (
+                <>
+                  <ShoppingCart className="h-3 w-3" />
+                  {isAuthenticated ? 'Add' : 'Login'}
+                </>
+              )}
+            </button>
+          </>
+        ) : (
+          <span className="text-[11px] text-red-500 font-medium">Out of stock</span>
+        )}
+      </div>
+    </div>
   )
 }

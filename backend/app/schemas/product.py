@@ -153,16 +153,24 @@ class ProductListOut(BaseModel):
     price: Decimal
     unit: str
     stock: int
+    min_order_qty: int = 1
     is_organic: bool
     status: str
     primary_image: Optional[str] = None
     images: List[ProductListImageOut] = []
     category_slug: Optional[str] = None
     benefits: List[str] = []
+    benefits_mr: List[str] = []
+    critical_difference: Optional[str] = None
+    critical_difference_mr: Optional[str] = None
+    farmer_id: Optional[uuid.UUID] = None
     farmer_name: Optional[str] = None
     farmer_district: Optional[str] = None
+    farmer_rating: Optional[float] = None
     discount: Optional[DiscountOut] = None
-    rating: Optional[float] = None
+    avg_rating: Optional[float] = None
+    rating: Optional[float] = None        # kept for backward compat
+    review_count: int = 0
     created_at: datetime
 
 
