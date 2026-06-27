@@ -390,18 +390,23 @@ async def get_farmer_profile(
     profile = farmer.farmer_profile
     return {
         "id": str(farmer.id),
-        "name": farmer.name,
+        "full_name": farmer.name or "",
+        "name": farmer.name or "",
+        "phone": farmer.phone or "",
         "district": profile.district,
         "taluka": profile.taluka,
         "village": profile.village,
-        "produce_types": profile.produce_types,
+        "produce_types": profile.produce_types or [],
         "farm_size_acres": profile.farm_size_acres,
         "bio": profile.bio,
         "farm_description": profile.farm_description,
-        "rating": profile.rating,
-        "total_ratings": profile.total_ratings,
+        "rating": float(profile.rating) if profile.rating else 0.0,
+        "total_ratings": profile.total_ratings or 0,
+        "total_orders_fulfilled": profile.total_orders_fulfilled if hasattr(profile, 'total_orders_fulfilled') else 0,
+        "profile_photo": profile.profile_photo_url,
         "profile_photo_url": profile.profile_photo_url,
-        "is_organic": False,  # computed from products
+        "approval_status": profile.status,
+        "member_since": farmer.created_at.isoformat(),
         "joined_date": farmer.created_at.isoformat(),
     }
 

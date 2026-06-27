@@ -82,7 +82,7 @@ export default function FarmerProfilePage() {
                 {farmer.profile_photo ? (
                   <img src={farmer.profile_photo} alt={farmer.full_name} className="w-full h-full object-cover" />
                 ) : (
-                  farmer.full_name[0]
+                  (farmer.full_name || '?')[0]
                 )}
               </div>
             </div>
