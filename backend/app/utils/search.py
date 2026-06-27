@@ -158,7 +158,7 @@ async def build_search_query(
     Build and execute a comprehensive product search query.
     Uses pg_trgm similarity for fuzzy matching and ts_rank for full-text search.
     """
-    from app.models.product import Product, ProductImage
+    from app.models.product import Product, ProductImage, FarmerProductListing
     from app.models.user import User
     import uuid
     from decimal import Decimal
@@ -211,7 +211,18 @@ async def build_search_query(
         filters.append(Product.unit == unit)
 
     if in_stock:
-        filters.append(Product.stock > 0)
+        # Accept products that have direct stock OR have at least one active listing with stock.
+        # This handles both the legacy direct-stock model and the FarmerProductListing model.
+        has_listing_stock = (
+            select(FarmerProductListing.id)
+            .where(
+                FarmerProductListing.product_id == Product.id,
+                FarmerProductListing.status == "ACTIVE",
+                FarmerProductListing.stock > 0,
+            )
+            .exists()
+        )
+        filters.append(or_(Product.stock > 0, has_listing_stock))
 
     if filters:
         stmt = stmt.where(and_(*filters))

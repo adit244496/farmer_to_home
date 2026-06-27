@@ -1237,6 +1237,21 @@ async def update_promo(
     return promo
 
 
+@router.post("/sync-product-stock", summary="Backfill Product.stock from FarmerProductListing")
+async def sync_product_stock_bulk(
+    admin=Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    """One-time (idempotent) sync: recalculate every Product's stock and status
+    from its FarmerProductListing entries. Safe to run multiple times."""
+    product_ids_result = await db.execute(select(Product.id))
+    product_ids = product_ids_result.scalars().all()
+    for pid in product_ids:
+        await _sync_product_stock(pid, db)
+    await db.commit()
+    return {"synced": len(product_ids)}
+
+
 @router.post("/seed-test-data", summary="Seed test farmers and products")
 async def seed_test_data(
     admin=Depends(require_role("admin")),
@@ -1448,6 +1463,8 @@ async def create_farmer_product_mapping(
         status="OUT_OF_STOCK" if stock == 0 else "ACTIVE",
     )
     db.add(listing)
+    await db.flush()
+    await _sync_product_stock(product_id, db)
     await db.commit()
 
     result = await db.execute(
@@ -1496,6 +1513,8 @@ async def update_farmer_product_mapping(
     if "status" in body and body["status"] in ("ACTIVE", "INACTIVE", "OUT_OF_STOCK"):
         listing.status = body["status"]
     listing.updated_at = dt.utcnow()
+    await db.flush()
+    await _sync_product_stock(listing.product_id, db)
     await db.commit()
 
     result = await db.execute(
@@ -1520,9 +1539,37 @@ async def delete_farmer_product_mapping(
     listing = result.scalar_one_or_none()
     if not listing:
         raise HTTPException(status_code=404, detail="Listing not found")
+    product_id = listing.product_id
     await db.delete(listing)
+    await db.flush()
+    await _sync_product_stock(product_id, db)
     await db.commit()
     return {"message": "Listing deleted"}
+
+
+async def _sync_product_stock(product_id: uuid.UUID, db: AsyncSession) -> None:
+    """Recalculate Product.stock as the sum of all ACTIVE FarmerProductListing stocks.
+    Also promotes OUT_OF_STOCK → ACTIVE (or demotes ACTIVE → OUT_OF_STOCK) accordingly.
+    INACTIVE products are never auto-activated."""
+    total_result = await db.execute(
+        select(func.coalesce(func.sum(FarmerProductListing.stock), 0))
+        .where(
+            FarmerProductListing.product_id == product_id,
+            FarmerProductListing.status == "ACTIVE",
+        )
+    )
+    total_stock = int(total_result.scalar())
+
+    product_result = await db.execute(select(Product).where(Product.id == product_id))
+    product = product_result.scalar_one_or_none()
+    if not product:
+        return
+
+    product.stock = total_stock
+    if total_stock > 0 and product.status == "OUT_OF_STOCK":
+        product.status = "ACTIVE"
+    elif total_stock == 0 and product.status == "ACTIVE":
+        product.status = "OUT_OF_STOCK"
 
 
 def _serialize_listing(l: FarmerProductListing) -> dict:
