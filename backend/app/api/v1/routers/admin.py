@@ -517,7 +517,7 @@ async def list_all_products(
     category: Optional[str] = None,
     search: Optional[str] = None,
     page: int = Query(1, ge=1),
-    page_size: int = Query(20, ge=1, le=100),
+    page_size: int = Query(20, ge=1, le=500),
     admin=Depends(require_role("admin")),
     db: AsyncSession = Depends(get_db),
 ):
