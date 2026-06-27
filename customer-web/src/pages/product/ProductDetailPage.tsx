@@ -39,6 +39,8 @@ export default function ProductDetailPage() {
   const [adding, setAdding] = useState(false)
   const [addedMsg, setAddedMsg] = useState(false)
   const [reviewPage, setReviewPage] = useState(1)
+  const [filterStar, setFilterStar] = useState<number | null>(null)
+  const [sortOrder, setSortOrder] = useState<'recent' | 'high' | 'low'>('recent')
 
   const { data: product, isLoading } = useQuery({
     queryKey: ['product', id],
@@ -115,6 +117,20 @@ export default function ProductDetailPage() {
 
   const reviews: Review[] = reviewsData?.items ?? reviewsData?.results ?? []
   const reviewPages: number = reviewsData?.pages ?? 1
+
+  const starCounts = useMemo(() =>
+    [5,4,3,2,1].reduce<Record<number,number>>((acc, s) => {
+      acc[s] = reviews.filter(r => Math.round(r.rating) === s).length
+      return acc
+    }, {}),
+  [reviews])
+
+  const displayedReviews = useMemo(() => {
+    let r = filterStar ? reviews.filter(rv => Math.round(rv.rating) === filterStar) : [...reviews]
+    if (sortOrder === 'high') r = [...r].sort((a, b) => b.rating - a.rating)
+    if (sortOrder === 'low')  r = [...r].sort((a, b) => a.rating - b.rating)
+    return r
+  }, [reviews, filterStar, sortOrder])
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24 lg:pb-6">
@@ -341,34 +357,62 @@ export default function ProductDetailPage() {
             </section>
           )}
 
-          {/* Customer reviews — Google Maps style */}
+          {/* Customer reviews */}
           <section id="reviews" className="scroll-mt-20">
-            <h2 className="font-bold text-gray-900 mb-4 text-base">{t('customerReviews')}</h2>
 
+            {/* Header row: title + sort */}
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-bold text-gray-900 text-base">{t('customerReviews')}</h2>
+              {reviews.length > 0 && (
+                <select
+                  value={sortOrder}
+                  onChange={e => setSortOrder(e.target.value as 'recent' | 'high' | 'low')}
+                  className="text-xs border border-gray-200 rounded-lg px-2.5 py-1.5 text-gray-600 bg-white focus:outline-none focus:ring-1 focus:ring-primary-300"
+                >
+                  <option value="recent">Most Recent</option>
+                  <option value="high">Highest First</option>
+                  <option value="low">Lowest First</option>
+                </select>
+              )}
+            </div>
+
+            {/* Summary card */}
             {reviewCount > 0 && (
-              <div className="bg-white rounded-2xl p-5 mb-4 border border-gray-100">
-                <div className="flex items-start gap-6">
-                  <div className="text-center flex-shrink-0 w-20">
-                    <div className="text-5xl font-bold text-gray-900 leading-none">{avgRating.toFixed(1)}</div>
+              <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-4">
+                <div className="flex flex-col sm:flex-row sm:items-center gap-5 sm:gap-8">
+
+                  {/* Overall score */}
+                  <div className="text-center flex-shrink-0 sm:w-28">
+                    <div className="text-6xl font-bold text-gray-900 leading-none">{avgRating.toFixed(1)}</div>
                     <div className="flex justify-center gap-0.5 mt-2">
                       {[1,2,3,4,5].map(s => (
-                        <Star key={s} className={`h-3.5 w-3.5 ${s <= Math.round(avgRating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200 fill-gray-200'}`} />
+                        <Star key={s} className={`h-4 w-4 ${s <= Math.round(avgRating) ? 'text-yellow-400 fill-yellow-400' : 'text-gray-200 fill-gray-200'}`} />
                       ))}
                     </div>
-                    <p className="text-xs text-gray-400 mt-1">{reviewCount} {t('reviews')}</p>
+                    <p className="text-xs text-gray-400 mt-1.5">{reviewCount} {t('reviews')}</p>
                   </div>
-                  <div className="flex-1 space-y-1.5 pt-1">
+
+                  <div className="hidden sm:block w-px self-stretch bg-gray-100 flex-shrink-0" />
+
+                  {/* Clickable star bars */}
+                  <div className="flex-1 space-y-1.5">
                     {[5,4,3,2,1].map(star => {
-                      const cnt = reviews.filter(r => Math.round(r.rating) === star).length
+                      const cnt = starCounts[star] ?? 0
                       const pct = reviews.length > 0 ? (cnt / reviews.length) * 100 : 0
+                      const active = filterStar === star
                       return (
-                        <div key={star} className="flex items-center gap-2">
-                          <span className="text-xs text-gray-500 w-3 text-right">{star}</span>
+                        <button
+                          key={star}
+                          onClick={() => setFilterStar(active ? null : star)}
+                          className={`w-full flex items-center gap-2 rounded-lg px-2 py-0.5 transition-colors ${active ? 'bg-yellow-50 ring-1 ring-yellow-300' : 'hover:bg-gray-50'}`}
+                        >
+                          <span className="text-xs text-gray-500 w-3 text-right flex-shrink-0">{star}</span>
                           <Star className="h-3 w-3 text-yellow-400 fill-yellow-400 flex-shrink-0" />
                           <div className="flex-1 h-2 bg-gray-100 rounded-full overflow-hidden">
                             <div className="h-full bg-yellow-400 rounded-full transition-all duration-500" style={{ width: `${pct}%` }} />
                           </div>
-                        </div>
+                          <span className="text-xs text-gray-400 w-5 text-right flex-shrink-0">{cnt}</span>
+                        </button>
                       )
                     })}
                   </div>
@@ -376,19 +420,69 @@ export default function ProductDetailPage() {
               </div>
             )}
 
-            {reviews.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
-                <Star className="h-8 w-8 text-gray-200 mx-auto mb-2" />
-                <p className="text-gray-400 text-sm">{t('noReviewsYet')}</p>
+            {/* Filter pills (Amazon style) */}
+            {reviewCount > 0 && (
+              <div className="flex items-center gap-2 flex-wrap mb-4">
+                <button
+                  onClick={() => setFilterStar(null)}
+                  className={`px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
+                    filterStar === null
+                      ? 'bg-gray-900 text-white border-gray-900'
+                      : 'bg-white text-gray-600 border-gray-200 hover:border-gray-400'
+                  }`}
+                >
+                  All
+                </button>
+                {[5,4,3,2,1].map(star => {
+                  const cnt = starCounts[star] ?? 0
+                  if (cnt === 0) return null
+                  const active = filterStar === star
+                  return (
+                    <button
+                      key={star}
+                      onClick={() => setFilterStar(active ? null : star)}
+                      className={`flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold border transition-colors ${
+                        active
+                          ? 'bg-yellow-400 text-gray-900 border-yellow-400'
+                          : 'bg-white text-gray-600 border-gray-200 hover:border-yellow-300 hover:bg-yellow-50'
+                      }`}
+                    >
+                      <Star className={`h-2.5 w-2.5 ${active ? 'fill-gray-900 text-gray-900' : 'fill-yellow-400 text-yellow-400'}`} />
+                      {star} <span className={`font-normal ${active ? 'text-gray-700' : 'text-gray-400'}`}>({cnt})</span>
+                    </button>
+                  )
+                })}
+                {filterStar !== null && (
+                  <span className="text-xs text-gray-400 ml-1">
+                    {displayedReviews.length} result{displayedReviews.length !== 1 ? 's' : ''}
+                  </span>
+                )}
               </div>
+            )}
+
+            {/* Review cards */}
+            {displayedReviews.length === 0 ? (
+              reviews.length === 0 ? (
+                <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
+                  <Star className="h-8 w-8 text-gray-200 mx-auto mb-2" />
+                  <p className="text-gray-400 text-sm">{t('noReviewsYet')}</p>
+                </div>
+              ) : (
+                <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center">
+                  <p className="text-gray-400 text-sm">No {filterStar}-star reviews on this page</p>
+                  <button onClick={() => setFilterStar(null)} className="text-xs text-primary-600 mt-2 hover:underline">
+                    Show all reviews
+                  </button>
+                </div>
+              )
             ) : (
               <>
-                <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
-                  {reviews.map((review, idx) => (
-                    <ReviewCard key={review.id} review={review} isLast={idx === reviews.length - 1} />
+                <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden lg:grid lg:grid-cols-2 lg:divide-x lg:divide-gray-100">
+                  {displayedReviews.map((review, idx) => (
+                    <ReviewCard key={review.id} review={review} isLast={idx === displayedReviews.length - 1} />
                   ))}
                 </div>
-                {reviewPages > 1 && (
+                {reviewPages > 1 && !filterStar && (
                   <div className="flex items-center justify-center gap-2 pt-3">
                     <button onClick={() => setReviewPage(p => Math.max(1, p - 1))} disabled={reviewPage === 1}
                       className="p-2 rounded-lg border border-gray-200 disabled:opacity-40 hover:bg-gray-50">

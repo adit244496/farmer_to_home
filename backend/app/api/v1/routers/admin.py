@@ -1241,7 +1241,7 @@ async def update_smtp_settings(
     return {"message": "SMTP settings saved"}
 
 
-@router.get("/settings/sms", summary="Get SMS/WhatsApp OTP settings (API key masked)")
+@router.get("/settings/sms", summary="Get OTP provider + Fast2SMS settings (key masked)")
 async def get_sms_settings(
     admin=Depends(require_role("admin")),
     db: AsyncSession = Depends(get_db),
@@ -1260,7 +1260,7 @@ async def get_sms_settings(
     }
 
 
-@router.patch("/settings/sms", summary="Save SMS/WhatsApp OTP settings")
+@router.patch("/settings/sms", summary="Save OTP provider + Fast2SMS settings")
 async def update_sms_settings(
     body: dict,
     admin=Depends(require_role("admin")),
@@ -1288,6 +1288,53 @@ async def update_sms_settings(
 
     await db.commit()
     return {"message": "SMS settings saved"}
+
+
+@router.get("/settings/whatsapp", summary="Get Meta WhatsApp Cloud API settings (token masked)")
+async def get_whatsapp_settings(
+    admin=Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.models.settings import SiteSetting
+    from app.utils.otp import API_KEY_MASK
+
+    keys = ["whatsapp_phone_number_id", "whatsapp_access_token", "whatsapp_template_name", "whatsapp_template_lang"]
+    result = await db.execute(select(SiteSetting).where(SiteSetting.key.in_(keys)))
+    rows = {row.key: row.value for row in result.scalars().all()}
+
+    return {
+        "whatsapp_phone_number_id": rows.get("whatsapp_phone_number_id") or "",
+        "whatsapp_access_token": API_KEY_MASK if rows.get("whatsapp_access_token") else "",
+        "whatsapp_template_name": rows.get("whatsapp_template_name") or "otp",
+        "whatsapp_template_lang": rows.get("whatsapp_template_lang") or "en_US",
+    }
+
+
+@router.patch("/settings/whatsapp", summary="Save Meta WhatsApp Cloud API settings")
+async def update_whatsapp_settings(
+    body: dict,
+    admin=Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.models.settings import SiteSetting
+    from app.utils.otp import API_KEY_MASK
+
+    allowed = {"whatsapp_phone_number_id", "whatsapp_access_token", "whatsapp_template_name", "whatsapp_template_lang"}
+
+    for key, value in body.items():
+        if key not in allowed:
+            continue
+        if key == "whatsapp_access_token" and value == API_KEY_MASK:
+            continue
+        result = await db.execute(select(SiteSetting).where(SiteSetting.key == key))
+        row = result.scalar_one_or_none()
+        if row:
+            row.value = str(value)
+        else:
+            db.add(SiteSetting(key=key, value=str(value)))
+
+    await db.commit()
+    return {"message": "WhatsApp settings saved"}
 
 
 @router.get("/orders", summary="All orders")

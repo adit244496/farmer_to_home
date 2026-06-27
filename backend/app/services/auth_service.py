@@ -34,7 +34,7 @@ from app.schemas.auth import (
     FarmerRegister,
     TokenResponse,
 )
-from app.utils.otp import generate_otp, send_otp_sms, send_otp_email
+from app.utils.otp import generate_otp, send_otp_sms, send_otp_whatsapp, send_otp_email
 from app.utils.s3 import upload_file_to_s3
 from app.utils.notifications import create_notification
 
@@ -44,6 +44,7 @@ MAX_OTP_PER_HOUR = 3
 
 _SMTP_KEYS = ["smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_from_name"]
 _SMS_KEYS = ["fast2sms_api_key", "otp_provider"]
+_WHATSAPP_KEYS = ["whatsapp_phone_number_id", "whatsapp_access_token", "whatsapp_template_name", "whatsapp_template_lang"]
 
 
 async def _load_smtp_settings(db: AsyncSession) -> Optional[dict]:
@@ -71,6 +72,18 @@ async def _load_sms_settings(db: AsyncSession) -> dict:
     }
 
 
+async def _load_whatsapp_settings(db: AsyncSession) -> dict:
+    """Load Meta WhatsApp Cloud API credentials from DB."""
+    result = await db.execute(select(SiteSetting).where(SiteSetting.key.in_(_WHATSAPP_KEYS)))
+    rows = {row.key: row.value for row in result.scalars().all()}
+    return {
+        "phone_number_id": rows.get("whatsapp_phone_number_id") or "",
+        "access_token": rows.get("whatsapp_access_token") or "",
+        "template_name": rows.get("whatsapp_template_name") or "otp",
+        "template_lang": rows.get("whatsapp_template_lang") or "en_US",
+    }
+
+
 async def request_otp(phone: str, db: AsyncSession, redis: aioredis.Redis) -> dict:
     """
     Request OTP for phone number with rate limiting (max 3 per hour).
@@ -85,8 +98,19 @@ async def request_otp(phone: str, db: AsyncSession, redis: aioredis.Redis) -> di
     otp = generate_otp()
     await set_otp(phone, otp)
     await increment_rate_limit(phone)
+
     sms = await _load_sms_settings(db)
-    await send_otp_sms(phone, otp, api_key_override=sms["api_key"], provider=sms["provider"])
+    if sms["provider"] == "whatsapp":
+        wa = await _load_whatsapp_settings(db)
+        await send_otp_whatsapp(
+            phone, otp,
+            phone_number_id=wa["phone_number_id"],
+            access_token=wa["access_token"],
+            template_name=wa["template_name"],
+            template_lang=wa["template_lang"],
+        )
+    else:
+        await send_otp_sms(phone, otp, api_key_override=sms["api_key"])
 
     return {"message": f"OTP sent to {phone}", "expires_in": settings.OTP_EXPIRY_MINUTES * 60}
 

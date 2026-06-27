@@ -168,27 +168,30 @@ export function ProductCard({ product, className }: ProductCardProps) {
 
           {/* Row 3: Qty stepper + Add — single line */}
           {inStock ? (
-            <div className="flex items-center gap-1.5 mt-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center gap-1 mt-auto" onClick={(e) => e.stopPropagation()}>
               <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden flex-shrink-0">
-                <button onClick={() => setQty((q) => Math.max(minQty, q - 1))} className="px-2 py-1.5 text-gray-600 hover:bg-gray-50 transition-colors">
+                <button onClick={() => setQty((q) => Math.max(minQty, q - 1))} className="px-1.5 py-1.5 text-gray-600 hover:bg-gray-50 transition-colors">
                   <Minus className="h-3 w-3" />
                 </button>
-                <span className="px-2 text-xs font-semibold min-w-[1.5rem] text-center">{qty}</span>
-                <button onClick={() => setQty((q) => Math.min(product.stock, q + 1))} className="px-2 py-1.5 text-gray-600 hover:bg-gray-50 transition-colors">
+                <span className="px-1.5 text-xs font-semibold min-w-[1.25rem] text-center">{qty}</span>
+                <button onClick={() => setQty((q) => Math.min(product.stock, q + 1))} className="px-1.5 py-1.5 text-gray-600 hover:bg-gray-50 transition-colors">
                   <Plus className="h-3 w-3" />
                 </button>
               </div>
               <button
                 onClick={handleAddToCart}
                 disabled={adding}
-                className="flex-1 flex items-center justify-center gap-1 bg-primary-700 text-white text-xs font-semibold py-1.5 rounded-lg hover:bg-primary-800 transition-colors disabled:opacity-50"
+                className="flex-1 flex items-center justify-center gap-1 bg-primary-700 text-white text-xs font-semibold py-1.5 rounded-lg hover:bg-primary-800 transition-colors disabled:opacity-50 min-w-0"
               >
-                {added ? '✓ Added' : (
-                  <>
-                    <ShoppingCart className="h-3.5 w-3.5" />
-                    {isAuthenticated ? 'Add' : 'Login'}
-                  </>
-                )}
+                {added
+                  ? <span className="truncate">✓</span>
+                  : (
+                    <>
+                      <ShoppingCart className="h-3.5 w-3.5 flex-shrink-0" />
+                      <span className="truncate">{isAuthenticated ? 'Add' : 'Login'}</span>
+                    </>
+                  )
+                }
               </button>
             </div>
           ) : (

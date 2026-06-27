@@ -23,52 +23,98 @@ async def send_otp_sms(
     phone: str,
     otp: str,
     api_key_override: Optional[str] = None,
-    provider: str = "sms",
 ) -> bool:
-    logger.info(f"[OTP] Sending OTP to {phone} via {provider}")
+    logger.info(f"[OTP SMS] Sending OTP to {phone}")
 
     api_key = api_key_override or settings.FAST2SMS_API_KEY
 
     if not api_key:
-        logger.warning("[OTP] FAST2SMS_API_KEY not set — printing OTP to console (dev mode)")
+        logger.warning("[OTP SMS] FAST2SMS_API_KEY not set — printing OTP to console (dev mode)")
         print(f"[DEV] OTP for {phone}: {otp}")
         return True
 
     try:
         async with httpx.AsyncClient(timeout=10) as client:
-            if provider == "whatsapp":
-                response = await client.post(
-                    "https://www.fast2sms.com/dev/whatsapp",
-                    json={
-                        "authorization": api_key,
-                        "message": (
-                            f"Your FarmerToHome OTP is *{otp}*. "
-                            f"Valid for {settings.OTP_EXPIRY_MINUTES} minutes. Do not share it."
-                        ),
-                        "numbers": phone,
-                    },
-                    headers={"cache-control": "no-cache"},
-                )
-            else:
-                response = await client.get(
-                    "https://www.fast2sms.com/dev/bulkV2",
-                    params={
-                        "authorization": api_key,
-                        "variables_values": otp,
-                        "route": "otp",
-                        "numbers": phone,
-                    },
-                    headers={"cache-control": "no-cache"},
-                )
+            response = await client.get(
+                "https://www.fast2sms.com/dev/bulkV2",
+                params={
+                    "authorization": api_key,
+                    "variables_values": otp,
+                    "route": "otp",
+                    "numbers": phone,
+                },
+                headers={"cache-control": "no-cache"},
+            )
             data = response.json()
             if data.get("return") is True:
-                logger.info(f"[OTP {provider.upper()}] Sent successfully to {phone}")
+                logger.info(f"[OTP SMS] Sent successfully to {phone}")
                 return True
             else:
-                logger.error(f"[OTP {provider.upper()}] Fast2SMS error: {data}")
+                logger.error(f"[OTP SMS] Fast2SMS error: {data}")
                 return False
     except Exception as e:
-        logger.error(f"[OTP {provider.upper()}] Exception: {e}")
+        logger.error(f"[OTP SMS] Exception: {e}")
+        return False
+
+
+async def send_otp_whatsapp(
+    phone: str,
+    otp: str,
+    phone_number_id: str,
+    access_token: str,
+    template_name: str = "otp",
+    template_lang: str = "en_US",
+) -> bool:
+    """Send OTP via Meta WhatsApp Cloud API using a pre-approved template."""
+    logger.info(f"[OTP WHATSAPP] Sending OTP to {phone}")
+
+    # Normalize phone: WhatsApp requires E.164 without leading +
+    wa_phone = phone.lstrip("+")
+
+    url = f"https://graph.facebook.com/v20.0/{phone_number_id}/messages"
+
+    payload = {
+        "messaging_product": "whatsapp",
+        "to": wa_phone,
+        "type": "template",
+        "template": {
+            "name": template_name,
+            "language": {"code": template_lang},
+            "components": [
+                {
+                    "type": "body",
+                    "parameters": [{"type": "text", "text": otp}],
+                },
+                {
+                    # Standard copy-code button used by Meta's built-in OTP template
+                    "type": "button",
+                    "sub_type": "url",
+                    "index": "0",
+                    "parameters": [{"type": "text", "text": otp}],
+                },
+            ],
+        },
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=10) as client:
+            response = await client.post(
+                url,
+                json=payload,
+                headers={
+                    "Authorization": f"Bearer {access_token}",
+                    "Content-Type": "application/json",
+                },
+            )
+            data = response.json()
+            if response.status_code == 200 and data.get("messages"):
+                logger.info(f"[OTP WHATSAPP] Sent successfully to {phone}")
+                return True
+            else:
+                logger.error(f"[OTP WHATSAPP] Meta API error: {data}")
+                return False
+    except Exception as e:
+        logger.error(f"[OTP WHATSAPP] Exception: {e}")
         return False
 
 

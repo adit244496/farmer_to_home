@@ -179,7 +179,7 @@ export default function CategoryPage() {
                 <p className="text-sm font-medium">{t('noProductsFound')}</p>
               </div>
             ) : (
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-2">
                 {products.map((p) => (
                   <ProductCard key={p.id} product={p} />
                 ))}
