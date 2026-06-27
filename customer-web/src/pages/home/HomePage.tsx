@@ -78,7 +78,7 @@ export default function HomePage() {
   })
 
   return (
-    <div className="min-h-screen bg-[#faf7f0] pb-20 sm:pb-0">
+    <div className="h-dvh flex flex-col bg-[#faf7f0] pb-20 sm:pb-0">
       {/* Soft decorative background wash */}
       <div
         aria-hidden
@@ -91,7 +91,7 @@ export default function HomePage() {
 
       <Header />
 
-      <main className="max-w-6xl mx-auto px-4 pt-4 pb-6 space-y-5">
+      <main className="flex-1 overflow-y-auto px-4 sm:px-6 lg:px-10 pt-4 pb-6 space-y-5">
 
         {/* Welcome */}
         {user?.full_name && (
@@ -158,13 +158,9 @@ export default function HomePage() {
               {banner.bullets.map((b, i) => (
                 <span
                   key={i}
-                  className="flex items-center gap-1.5 text-[11px] font-medium text-white/95 rounded-full px-2.5 py-1"
+                  className="text-[11px] font-medium text-white/95 rounded-full px-2.5 py-1"
                   style={{ background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(4px)' }}
                 >
-                  <span
-                    className="w-1.5 h-1.5 rounded-full flex-shrink-0"
-                    style={{ background: banner.accent }}
-                  />
                   {b}
                 </span>
               ))}
@@ -277,38 +273,47 @@ function GlossySlider({ categories, language }: { categories: CategoryList; lang
   const navigate = useNavigate()
   const ref = useRef<HTMLDivElement>(null)
 
+  const catButtons = categories.map((cat) => {
+    const emoji = getCategoryEmoji(cat.slug)
+    const label = language === 'mr' ? cat.name_mr : cat.name_en
+    return (
+      <button
+        key={cat.id}
+        onClick={() => navigate(`/category/${cat.slug}`)}
+        className="flex-shrink-0 flex flex-col items-center gap-1.5 group"
+      >
+        <div
+          className="w-[68px] h-[68px] rounded-2xl overflow-hidden flex items-center justify-center transition-all duration-200 group-hover:-translate-y-0.5"
+          style={{
+            background: 'linear-gradient(145deg, #ffffff 0%, #f5efe0 100%)',
+            boxShadow: '0 1px 0 0 rgba(255,255,255,0.9) inset, 0 4px 12px -4px rgba(13,122,122,0.20), 0 0 0 1px rgba(13,122,122,0.08)',
+          }}
+        >
+          {cat.icon_url
+            ? <img src={cat.icon_url} alt={label} className="w-full h-full object-cover" />
+            : <span className="text-[30px] leading-none">{emoji}</span>}
+        </div>
+        <span className="text-[11px] font-semibold text-[#0a5c5c] text-center w-[68px] line-clamp-2 leading-tight group-hover:text-[#b8862e] transition-colors">
+          {label}
+        </span>
+      </button>
+    )
+  })
+
   return (
-    <div className="relative">
-      <div className="absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-[#faf7f0] to-transparent z-10 pointer-events-none" />
-      <div ref={ref} className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
-        {categories.map((cat) => {
-          const emoji = getCategoryEmoji(cat.slug)
-          const label = language === 'mr' ? cat.name_mr : cat.name_en
-          return (
-            <button
-              key={cat.id}
-              onClick={() => navigate(`/category/${cat.slug}`)}
-              className="flex-shrink-0 flex flex-col items-center gap-1.5 group"
-            >
-              <div
-                className="w-[68px] h-[68px] rounded-2xl overflow-hidden flex items-center justify-center transition-all duration-200 group-hover:-translate-y-0.5"
-                style={{
-                  background: 'linear-gradient(145deg, #ffffff 0%, #f5efe0 100%)',
-                  boxShadow: '0 1px 0 0 rgba(255,255,255,0.9) inset, 0 4px 12px -4px rgba(13,122,122,0.20), 0 0 0 1px rgba(13,122,122,0.08)',
-                }}
-              >
-                {cat.icon_url
-                  ? <img src={cat.icon_url} alt={label} className="w-full h-full object-cover" />
-                  : <span className="text-[30px] leading-none">{emoji}</span>}
-              </div>
-              <span className="text-[11px] font-semibold text-[#0a5c5c] text-center w-[68px] line-clamp-2 leading-tight group-hover:text-[#b8862e] transition-colors">
-                {label}
-              </span>
-            </button>
-          )
-        })}
+    <>
+      {/* Mobile: horizontal scroll */}
+      <div className="relative sm:hidden">
+        <div className="absolute right-0 top-0 bottom-0 w-10 bg-gradient-to-l from-[#faf7f0] to-transparent z-10 pointer-events-none" />
+        <div ref={ref} className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+          {catButtons}
+        </div>
       </div>
-    </div>
+      {/* Desktop: flex-wrap so all categories show */}
+      <div className="hidden sm:flex flex-wrap gap-4">
+        {catButtons}
+      </div>
+    </>
   )
 }
 
@@ -342,16 +347,25 @@ function HorizontalSection({ title, products, loading, onSeeAll, accentColor = '
       ) : products.length === 0 ? (
         <p className="text-sm text-[#0d7a7a]/50 py-4">{t('noProductsFound')}</p>
       ) : (
-        <div className="relative">
-          <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#faf7f0] to-transparent z-10 pointer-events-none" />
-          <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+        <>
+          {/* Mobile: horizontal scroll */}
+          <div className="relative sm:hidden">
+            <div className="absolute right-0 top-0 bottom-0 w-8 bg-gradient-to-l from-[#faf7f0] to-transparent z-10 pointer-events-none" />
+            <div className="flex gap-3 overflow-x-auto pb-2 no-scrollbar">
+              {products.map((p) => (
+                <div key={p.id} className="flex-shrink-0 w-44">
+                  <ProductCard product={p} />
+                </div>
+              ))}
+            </div>
+          </div>
+          {/* Desktop: responsive grid */}
+          <div className="hidden sm:grid grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-3">
             {products.map((p) => (
-              <div key={p.id} className="flex-shrink-0 w-44">
-                <ProductCard product={p} />
-              </div>
+              <ProductCard key={p.id} product={p} />
             ))}
           </div>
-        </div>
+        </>
       )}
     </section>
   )

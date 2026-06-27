@@ -17,6 +17,7 @@ from app.schemas.order import PromoCodeCreate, PromoCodeOut
 from app.schemas.admin import FarmerApproval, AdminOrderStatusUpdate
 from app.services import admin_service
 from app.services.order_service import get_razorpay_client
+from app.utils.s3 import upload_file_to_s3
 
 router = APIRouter(prefix="/admin", tags=["Admin"])
 
@@ -344,31 +345,19 @@ async def upload_farmer_media(
     if not result.scalar_one_or_none():
         raise HTTPException(status_code=404, detail="Farmer not found")
 
-    ext = (file.filename or "file").rsplit(".", 1)[-1].lower()
-    key = f"farmers/{farmer_id}/{uuid.uuid4()}.{ext}"
-    url: Optional[str] = None
-
-    if settings.AWS_ACCESS_KEY_ID and settings.AWS_SECRET_ACCESS_KEY and settings.AWS_BUCKET_NAME:
-        try:
-            import boto3
-            s3 = boto3.client(
-                "s3",
-                region_name=settings.AWS_REGION,
-                aws_access_key_id=settings.AWS_ACCESS_KEY_ID,
-                aws_secret_access_key=settings.AWS_SECRET_ACCESS_KEY,
-            )
-            content = await file.read()
-            s3.put_object(
-                Bucket=settings.AWS_BUCKET_NAME,
-                Key=key,
-                Body=content,
-                ContentType=file.content_type or "application/octet-stream",
-            )
-            url = f"https://{settings.AWS_BUCKET_NAME}.s3.{settings.AWS_REGION}.amazonaws.com/{key}"
-        except Exception as e:
-            raise HTTPException(status_code=500, detail=f"Upload failed: {e}")
-    else:
+    if not (settings.AWS_ACCESS_KEY_ID and settings.AWS_SECRET_ACCESS_KEY and settings.AWS_BUCKET_NAME):
         raise HTTPException(status_code=503, detail="S3 storage not configured")
+
+    try:
+        content = await file.read()
+        url = await upload_file_to_s3(
+            content,
+            file.filename or f"upload.{media_type}",
+            file.content_type or ("video/mp4" if media_type == "video" else "image/jpeg"),
+            "farmers",
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Upload failed: {e}")
 
     count_result = await db.execute(
         select(func.count()).select_from(FarmerMedia).where(FarmerMedia.farmer_id == farmer_id)
@@ -1241,7 +1230,7 @@ async def update_smtp_settings(
     return {"message": "SMTP settings saved"}
 
 
-@router.get("/settings/sms", summary="Get OTP provider + Fast2SMS settings (key masked)")
+@router.get("/settings/sms", summary="Get OTP provider + Fast2SMS Smart OTP settings (key masked)")
 async def get_sms_settings(
     admin=Depends(require_role("admin")),
     db: AsyncSession = Depends(get_db),
@@ -1249,7 +1238,7 @@ async def get_sms_settings(
     from app.models.settings import SiteSetting
     from app.utils.otp import API_KEY_MASK
 
-    keys = ["fast2sms_api_key", "otp_provider"]
+    keys = ["fast2sms_api_key", "otp_provider", "fast2sms_otp_id"]
     result = await db.execute(select(SiteSetting).where(SiteSetting.key.in_(keys)))
     rows = {row.key: row.value for row in result.scalars().all()}
 
@@ -1257,10 +1246,11 @@ async def get_sms_settings(
     return {
         "fast2sms_api_key": API_KEY_MASK if has_key else "",
         "otp_provider": rows.get("otp_provider") or "sms",
+        "fast2sms_otp_id": rows.get("fast2sms_otp_id") or "",
     }
 
 
-@router.patch("/settings/sms", summary="Save OTP provider + Fast2SMS settings")
+@router.patch("/settings/sms", summary="Save OTP provider + Fast2SMS Smart OTP settings")
 async def update_sms_settings(
     body: dict,
     admin=Depends(require_role("admin")),
@@ -1269,8 +1259,8 @@ async def update_sms_settings(
     from app.models.settings import SiteSetting
     from app.utils.otp import API_KEY_MASK
 
-    allowed = {"fast2sms_api_key", "otp_provider"}
-    valid_providers = {"sms", "whatsapp"}
+    allowed = {"fast2sms_api_key", "otp_provider", "fast2sms_otp_id"}
+    valid_providers = {"sms", "fast2sms_whatsapp", "whatsapp"}
 
     for key, value in body.items():
         if key not in allowed:
@@ -1278,7 +1268,7 @@ async def update_sms_settings(
         if key == "fast2sms_api_key" and value == API_KEY_MASK:
             continue
         if key == "otp_provider" and value not in valid_providers:
-            raise HTTPException(status_code=400, detail="Invalid provider. Must be 'sms' or 'whatsapp'.")
+            raise HTTPException(status_code=400, detail="Invalid provider. Must be 'sms', 'fast2sms_whatsapp', or 'whatsapp'.")
         result = await db.execute(select(SiteSetting).where(SiteSetting.key == key))
         row = result.scalar_one_or_none()
         if row:

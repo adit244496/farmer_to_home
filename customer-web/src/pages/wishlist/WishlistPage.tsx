@@ -8,10 +8,11 @@ export default function WishlistPage() {
   const { products, clear } = useWishlistStore()
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 sm:pb-0">
+    <div className="h-dvh flex flex-col bg-gray-50 pb-20 sm:pb-0">
       <Header />
 
-      <div className="max-w-3xl mx-auto px-4 py-5">
+      <div className="flex-1 overflow-y-auto">
+      <div className="px-4 sm:px-6 lg:px-10 py-5">
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <Heart className="h-5 w-5 text-red-500 fill-red-500" />
@@ -39,13 +40,14 @@ export default function WishlistPage() {
             <p className="text-xs text-gray-300 mt-1">Tap the ♡ on any product to save it here</p>
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
             {products.map((p) => (
               <ProductCard key={p.id} product={p} />
             ))}
           </div>
         )}
       </div>
+      </div>{/* end scroll wrapper */}
 
       <BottomNav />
     </div>

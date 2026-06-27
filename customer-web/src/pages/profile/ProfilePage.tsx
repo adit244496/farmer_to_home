@@ -17,8 +17,9 @@ export default function ProfilePage() {
   ]
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 sm:pb-0">
+    <div className="h-dvh flex flex-col bg-gray-50 pb-20 sm:pb-0">
       <Header />
+      <div className="flex-1 overflow-y-auto">
       <div className="max-w-xl mx-auto px-4 py-4">
         {/* User card */}
         <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-4 flex items-center gap-4">
@@ -74,6 +75,7 @@ export default function ProfilePage() {
           <span className="text-sm font-medium">{tc('logout')}</span>
         </button>
       </div>
+      </div>{/* end scroll wrapper */}
       <BottomNav />
     </div>
   )

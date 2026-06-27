@@ -8,10 +8,7 @@ import { Header } from '@/components/layout/Header'
 import { BottomNav } from '@/components/layout/BottomNav'
 import { Button } from '@/components/ui/Button'
 import { Spinner } from '@/components/ui/Spinner'
-
-function formatCurrency(amount: number) {
-  return `₹${amount.toFixed(2)}`
-}
+import { formatCurrency } from '@/utils/formatting'
 
 export default function CartPage() {
   const { t } = useTranslation('orders')
@@ -24,16 +21,17 @@ export default function CartPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-gray-50">
+      <div className="h-dvh flex flex-col bg-gray-50">
         <Header />
-        <div className="flex justify-center py-20"><Spinner /></div>
+        <div className="flex-1 flex justify-center items-center"><Spinner /></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-24 sm:pb-0">
+    <div className="h-dvh flex flex-col bg-gray-50 pb-24 sm:pb-0">
       <Header />
+      <div className="flex-1 overflow-y-auto">
       <div className="max-w-2xl mx-auto px-4 py-4">
         <h1 className="text-xl font-bold text-gray-900 mb-4">{t('orderSummary')}</h1>
 
@@ -134,6 +132,7 @@ export default function CartPage() {
           </div>
         )}
       </div>
+      </div>{/* end scroll wrapper */}
       <BottomNav />
     </div>
   )

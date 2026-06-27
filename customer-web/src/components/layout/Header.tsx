@@ -78,7 +78,7 @@ export function Header() {
       <header className="sticky top-0 z-50 bg-[#ede8e0] border-b border-[#d4c9bb] shadow-[0_1px_0_0_rgba(212,168,76,0.2)]">
         <div className="h-[2px] w-full bg-gradient-to-r from-[#d4a84c] via-[#e8c47a] to-[#d4a84c]" />
 
-        <div className="max-w-6xl mx-auto px-4 h-16 flex items-center gap-3">
+        <div className="px-4 sm:px-6 lg:px-10 h-16 flex items-center gap-3">
           {/* Logo */}
           <Link to="/" className="flex items-center gap-2 mr-1 flex-shrink-0 group">
             <img src="/logo_new.png" alt="Farmer to Home"
@@ -140,7 +140,7 @@ export function Header() {
             <div className="h-[2px] w-full bg-gradient-to-r from-[#d4a84c] via-[#e8c47a] to-[#d4a84c]" />
 
             {/* Input row */}
-            <div className="max-w-6xl mx-auto px-4 h-16 flex items-center gap-3">
+            <div className="px-4 sm:px-6 lg:px-10 h-16 flex items-center gap-3">
               <button onClick={closeSearch}
                 className="p-2 text-[#0d7a7a] hover:bg-[#0d7a7a]/8 rounded-full transition-colors flex-shrink-0">
                 <X className="h-5 w-5" />
@@ -177,7 +177,7 @@ export function Header() {
             </div>
 
             {/* Suggestions panel */}
-            <div className="max-w-6xl mx-auto px-4 pb-4 max-h-[70vh] overflow-y-auto">
+            <div className="px-4 sm:px-6 lg:px-10 pb-4 max-h-[70vh] overflow-y-auto">
 
               {/* Categories row */}
               {catSuggestions.length > 0 && (

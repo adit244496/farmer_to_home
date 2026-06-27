@@ -23,37 +23,56 @@ async def send_otp_sms(
     phone: str,
     otp: str,
     api_key_override: Optional[str] = None,
+    otp_id: Optional[str] = None,
+    channel: str = "default",
 ) -> bool:
-    logger.info(f"[OTP SMS] Sending OTP to {phone}")
+    """
+    Send OTP via Fast2SMS Smart OTP API (POST /dev/otp/send).
+    channel='default' → SMS (requires DLT-registered template via otp_id).
+    channel='whatsapp' → WhatsApp (no DLT needed; otp_id from Smart OTP dashboard).
+    Falls back to console print in dev mode when api_key is not set.
+    """
+    logger.info(f"[OTP] Sending OTP to {phone} via Fast2SMS Smart OTP (channel={channel})")
 
     api_key = api_key_override or settings.FAST2SMS_API_KEY
 
     if not api_key:
-        logger.warning("[OTP SMS] FAST2SMS_API_KEY not set — printing OTP to console (dev mode)")
+        logger.warning("[OTP] FAST2SMS_API_KEY not set — printing OTP to console (dev mode)")
+        print(f"[DEV] OTP for {phone}: {otp}")
+        return True
+
+    if not otp_id:
+        logger.warning("[OTP] fast2sms_otp_id not configured — printing OTP to console (dev mode)")
         print(f"[DEV] OTP for {phone}: {otp}")
         return True
 
     try:
+        payload: dict = {
+            "mobile": phone,
+            "otp_id": otp_id,
+            "otp": otp,
+        }
+        if channel and channel != "default":
+            payload["channel"] = channel
+
         async with httpx.AsyncClient(timeout=10) as client:
-            response = await client.get(
-                "https://www.fast2sms.com/dev/bulkV2",
-                params={
+            response = await client.post(
+                "https://www.fast2sms.com/dev/otp/send",
+                json=payload,
+                headers={
                     "authorization": api_key,
-                    "variables_values": otp,
-                    "route": "otp",
-                    "numbers": phone,
+                    "Content-Type": "application/json",
                 },
-                headers={"cache-control": "no-cache"},
             )
             data = response.json()
             if data.get("return") is True:
-                logger.info(f"[OTP SMS] Sent successfully to {phone}")
+                logger.info(f"[OTP] Sent successfully to {phone}")
                 return True
             else:
-                logger.error(f"[OTP SMS] Fast2SMS error: {data}")
+                logger.error(f"[OTP] Fast2SMS Smart OTP error: {data}")
                 return False
     except Exception as e:
-        logger.error(f"[OTP SMS] Exception: {e}")
+        logger.error(f"[OTP] Exception: {e}")
         return False
 
 

@@ -4,6 +4,22 @@ import { Loader2, AlertCircle, Eye, EyeOff, Mail, MessageSquare, CheckCircle, Sa
 import api from '@/lib/api'
 import clsx from 'clsx'
 
+function WhatsAppIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <circle cx="24" cy="24" r="24" fill="#25D366" />
+      <path
+        d="M34.5 13.5A14.8 14.8 0 0 0 24 9C16.27 9 10 15.27 10 23c0 2.49.65 4.91 1.89 7.05L10 38l8.18-1.86A14.93 14.93 0 0 0 24 37.8c7.73 0 14-6.27 14-14 0-3.74-1.46-7.25-4.11-9.88"
+        fill="white"
+      />
+      <path
+        d="M24 35.4a12.4 12.4 0 0 1-6.32-1.73l-.45-.27-4.68 1.07 1.1-4.56-.3-.47A12.36 12.36 0 0 1 11.6 23c0-6.84 5.56-12.4 12.4-12.4 3.31 0 6.42 1.29 8.76 3.63A12.32 12.32 0 0 1 36.4 23c0 6.84-5.56 12.4-12.4 12.4zm6.8-9.28c-.37-.19-2.2-1.09-2.54-1.21-.34-.12-.59-.18-.84.19-.25.37-.96 1.21-1.18 1.46-.21.25-.43.28-.8.09-.37-.18-1.57-.58-2.99-1.85-1.1-.98-1.85-2.2-2.06-2.57-.22-.37-.02-.57.16-.75.17-.17.37-.43.56-.65.19-.21.25-.37.37-.62.12-.25.06-.46-.03-.65-.09-.18-.84-2.03-1.15-2.78-.3-.73-.61-.63-.84-.64h-.72c-.25 0-.65.09-.99.46-.34.37-1.3 1.27-1.3 3.1s1.33 3.59 1.52 3.84c.18.25 2.62 4 6.35 5.61.89.38 1.58.61 2.12.78.89.28 1.7.24 2.34.15.71-.11 2.2-.9 2.51-1.77.31-.87.31-1.62.22-1.77-.09-.16-.34-.25-.71-.43z"
+        fill="#25D366"
+      />
+    </svg>
+  )
+}
+
 interface AppSection {
   id: string
   key: string
@@ -24,7 +40,8 @@ interface SmtpSettings {
 
 interface SmsSettings {
   fast2sms_api_key: string
-  otp_provider: 'sms' | 'whatsapp'
+  otp_provider: 'sms' | 'fast2sms_whatsapp' | 'whatsapp'
+  fast2sms_otp_id: string
 }
 
 interface WhatsAppSettings {
@@ -120,7 +137,7 @@ function SmsSettingsCard() {
     },
   })
 
-  const handleSmsChange = (field: keyof SmsSettings, value: string) => {
+  const handleSmsChange = (field: keyof SmsSettings, value: string | SmsSettings['otp_provider']) => {
     setForm((prev) => prev ? { ...prev, [field]: value } : prev)
     setSaveStatus('idle')
   }
@@ -136,7 +153,7 @@ function SmsSettingsCard() {
     setSaveStatus('idle')
     try {
       await api.patch('/admin/settings/sms', form)
-      if (form.otp_provider === 'whatsapp') {
+      if (form.otp_provider === 'whatsapp' && waForm) {
         await api.patch('/admin/settings/whatsapp', waForm)
       }
       setSaveStatus('success')
@@ -176,55 +193,108 @@ function SmsSettingsCard() {
         <p className="text-xs text-gray-500 mb-4">
           Choose how OTP codes are delivered to customers' phone numbers.
         </p>
-        <div className="flex gap-3">
-          {(['sms', 'whatsapp'] as const).map((p) => (
-            <button
-              key={p}
-              type="button"
-              onClick={() => handleSmsChange('otp_provider', p)}
-              className={clsx(
-                'flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors',
-                form.otp_provider === p
-                  ? p === 'whatsapp'
-                    ? 'border-green-500 bg-green-50 text-green-800'
-                    : 'border-blue-500 bg-blue-50 text-blue-800'
-                  : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
-              )}
-            >
-              {p === 'whatsapp' ? <><span>💬</span> WhatsApp</> : <><span>📱</span> SMS</>}
-              {form.otp_provider === p && (
-                <span className="ml-1 w-2 h-2 rounded-full bg-current opacity-70 inline-block" />
-              )}
-            </button>
-          ))}
+        <div className="flex flex-wrap gap-3">
+          {/* Fast2SMS SMS */}
+          <button
+            type="button"
+            onClick={() => handleSmsChange('otp_provider', 'sms')}
+            className={clsx(
+              'flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors',
+              form.otp_provider === 'sms'
+                ? 'border-blue-500 bg-blue-50 text-blue-800'
+                : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+            )}
+          >
+            <span>📱</span> Fast2SMS — SMS
+            {form.otp_provider === 'sms' && <span className="ml-1 w-2 h-2 rounded-full bg-blue-500 inline-block" />}
+          </button>
+
+          {/* Fast2SMS WhatsApp */}
+          <button
+            type="button"
+            onClick={() => handleSmsChange('otp_provider', 'fast2sms_whatsapp')}
+            className={clsx(
+              'flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors',
+              form.otp_provider === 'fast2sms_whatsapp'
+                ? 'border-[#25D366] bg-green-50 text-green-800'
+                : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+            )}
+          >
+            <WhatsAppIcon size={18} /> Fast2SMS — WhatsApp
+            {form.otp_provider === 'fast2sms_whatsapp' && <span className="ml-1 w-2 h-2 rounded-full bg-[#25D366] inline-block" />}
+          </button>
+
+          {/* Meta WhatsApp (default) */}
+          <button
+            type="button"
+            onClick={() => handleSmsChange('otp_provider', 'whatsapp')}
+            className={clsx(
+              'flex items-center gap-2 px-4 py-2.5 rounded-lg border text-sm font-medium transition-colors',
+              form.otp_provider === 'whatsapp'
+                ? 'border-[#25D366] bg-green-50 text-green-800'
+                : 'border-gray-200 bg-white text-gray-600 hover:bg-gray-50'
+            )}
+          >
+            <WhatsAppIcon size={18} /> WhatsApp (Meta)
+            {form.otp_provider === 'whatsapp' && <span className="ml-1 w-2 h-2 rounded-full bg-[#25D366] inline-block" />}
+          </button>
         </div>
       </div>
 
-      {/* Fast2SMS section — always shown (used for SMS; hidden for WhatsApp) */}
-      {form.otp_provider === 'sms' && (
-        <div className="border-t border-gray-100 pt-4">
-          <p className="text-xs font-semibold text-gray-700 mb-3">Fast2SMS — SMS</p>
-          <label className="block text-xs font-medium text-gray-600 mb-1">API Key</label>
-          <div className="relative">
-            <input
-              type={showKey ? 'text' : 'password'}
-              value={form.fast2sms_api_key}
-              onChange={(e) => handleSmsChange('fast2sms_api_key', e.target.value)}
-              placeholder="Paste your Fast2SMS API key"
-              className="w-full border border-gray-200 rounded-lg px-3 py-2 pr-9 text-sm outline-none focus:border-blue-400"
-            />
-            <button
-              type="button"
-              onClick={() => setShowKey((s) => !s)}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-            >
-              {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-            </button>
+      {/* Fast2SMS fields — shared by both Fast2SMS SMS and Fast2SMS WhatsApp */}
+      {(form.otp_provider === 'sms' || form.otp_provider === 'fast2sms_whatsapp') && (
+        <div className="border-t border-gray-100 pt-4 space-y-4">
+          <div>
+            <p className="text-xs font-semibold text-gray-700 mb-0.5">
+              {form.otp_provider === 'fast2sms_whatsapp' ? 'Fast2SMS — WhatsApp Channel' : 'Fast2SMS — SMS Channel'}
+            </p>
+            <p className="text-xs text-gray-400">
+              Create an OTP template at{' '}
+              <span className="font-mono bg-gray-100 px-1 rounded">fast2sms.com → Smart OTP</span>
+              {form.otp_provider === 'fast2sms_whatsapp'
+                ? ', select WhatsApp Channel, then copy the OTP ID below.'
+                : ', select SMS Channel, then copy the OTP ID below.'}
+            </p>
           </div>
-          <p className="text-xs text-gray-400 mt-1">
-            Get your key at{' '}
-            <span className="font-mono bg-gray-100 px-1 rounded">fast2sms.com → API → Developer</span>
-          </p>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-medium text-gray-600 mb-1">API Key</label>
+              <div className="relative">
+                <input
+                  type={showKey ? 'text' : 'password'}
+                  value={form.fast2sms_api_key}
+                  onChange={(e) => handleSmsChange('fast2sms_api_key', e.target.value)}
+                  placeholder="Paste your Fast2SMS API key"
+                  className="w-full border border-gray-200 rounded-lg px-3 py-2 pr-9 text-sm outline-none focus:border-blue-400"
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowKey((s) => !s)}
+                  className="absolute right-2.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                >
+                  {showKey ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                </button>
+              </div>
+              <p className="text-xs text-gray-400 mt-1">
+                Get your key at <span className="font-mono bg-gray-100 px-1 rounded">fast2sms.com → Dev API</span>
+              </p>
+            </div>
+
+            <div className="sm:col-span-2">
+              <label className="block text-xs font-medium text-gray-600 mb-1">OTP Template ID</label>
+              <input
+                type="text"
+                value={form.fast2sms_otp_id}
+                onChange={(e) => handleSmsChange('fast2sms_otp_id', e.target.value)}
+                placeholder="e.g. abc123xyz"
+                className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm font-mono outline-none focus:border-blue-400"
+              />
+              <p className="text-xs text-gray-400 mt-1">
+                Found at <span className="font-mono bg-gray-100 px-1 rounded">fast2sms.com → Smart OTP → your template</span>
+              </p>
+            </div>
+          </div>
         </div>
       )}
 

@@ -81,6 +81,24 @@ export default function ProductDetailPage() {
     return list
   }, [otherListings, product])
 
+  // Must be before any early returns — hooks cannot be conditional
+  const reviews: Review[] = reviewsData?.items ?? reviewsData?.results ?? []
+  const reviewPages: number = reviewsData?.pages ?? 1
+
+  const starCounts = useMemo(() =>
+    [5,4,3,2,1].reduce<Record<number,number>>((acc, s) => {
+      acc[s] = reviews.filter(r => Math.round(r.rating) === s).length
+      return acc
+    }, {}),
+  [reviews])
+
+  const displayedReviews = useMemo(() => {
+    let r = filterStar ? reviews.filter(rv => Math.round(rv.rating) === filterStar) : [...reviews]
+    if (sortOrder === 'high') r = [...r].sort((a, b) => b.rating - a.rating)
+    if (sortOrder === 'low')  r = [...r].sort((a, b) => a.rating - b.rating)
+    return r
+  }, [reviews, filterStar, sortOrder])
+
   const handleAddToCart = async () => {
     if (!isAuthenticated) { navigate('/login'); return }
     if (!product) return
@@ -93,7 +111,7 @@ export default function ProductDetailPage() {
   }
 
   if (isLoading) return (
-    <div className="min-h-screen bg-gray-50"><Header /><div className="flex justify-center py-20"><Spinner /></div></div>
+    <div className="h-dvh flex flex-col bg-gray-50"><Header /><div className="flex-1 flex justify-center items-center"><Spinner /></div></div>
   )
   if (!product) return null
 
@@ -115,29 +133,13 @@ export default function ProductDetailPage() {
       : (product.highlights ?? product.benefits)
   ) ?? []
 
-  const reviews: Review[] = reviewsData?.items ?? reviewsData?.results ?? []
-  const reviewPages: number = reviewsData?.pages ?? 1
-
-  const starCounts = useMemo(() =>
-    [5,4,3,2,1].reduce<Record<number,number>>((acc, s) => {
-      acc[s] = reviews.filter(r => Math.round(r.rating) === s).length
-      return acc
-    }, {}),
-  [reviews])
-
-  const displayedReviews = useMemo(() => {
-    let r = filterStar ? reviews.filter(rv => Math.round(rv.rating) === filterStar) : [...reviews]
-    if (sortOrder === 'high') r = [...r].sort((a, b) => b.rating - a.rating)
-    if (sortOrder === 'low')  r = [...r].sort((a, b) => a.rating - b.rating)
-    return r
-  }, [reviews, filterStar, sortOrder])
-
   return (
-    <div className="min-h-screen bg-gray-50 pb-24 lg:pb-6">
+    <div className="h-dvh flex flex-col bg-gray-50 pb-24 lg:pb-0">
       <Header />
 
-      {/* Full-width container with responsive padding */}
-      <div className="w-full max-w-[1400px] mx-auto px-4 sm:px-6 lg:px-10 xl:px-16 py-5">
+      {/* Scrollable content area fills remaining height */}
+      <div className="flex-1 overflow-y-auto">
+      <div className="w-full px-4 sm:px-6 lg:px-10 xl:px-16 py-5">
 
         <button onClick={() => navigate(-1)} className="flex items-center gap-1.5 text-gray-500 hover:text-gray-700 mb-5 text-sm font-medium">
           <ArrowLeft className="h-4 w-4" /> {tc('back')}
@@ -328,7 +330,7 @@ export default function ProductDetailPage() {
         </div>{/* end desktop flex row */}
 
         {/* ═══ SECTIONS BELOW THE FOLD ═══ */}
-        <div className="mt-10 space-y-10 max-w-4xl">
+        <div className="mt-10 space-y-10">
 
           {/* Other farmers */}
           {otherFarmers.length > 0 && (
@@ -512,6 +514,7 @@ export default function ProductDetailPage() {
           )}
         </div>
       </div>
+      </div>{/* end scroll wrapper */}
 
       <BottomNav />
     </div>

@@ -43,7 +43,7 @@ logger = logging.getLogger(__name__)
 MAX_OTP_PER_HOUR = 3
 
 _SMTP_KEYS = ["smtp_host", "smtp_port", "smtp_user", "smtp_password", "smtp_from_name"]
-_SMS_KEYS = ["fast2sms_api_key", "otp_provider"]
+_SMS_KEYS = ["fast2sms_api_key", "otp_provider", "fast2sms_otp_id"]
 _WHATSAPP_KEYS = ["whatsapp_phone_number_id", "whatsapp_access_token", "whatsapp_template_name", "whatsapp_template_lang"]
 
 
@@ -63,12 +63,13 @@ async def _load_smtp_settings(db: AsyncSession) -> Optional[dict]:
 
 
 async def _load_sms_settings(db: AsyncSession) -> dict:
-    """Load Fast2SMS API key and OTP provider from DB."""
+    """Load Fast2SMS Smart OTP settings from DB."""
     result = await db.execute(select(SiteSetting).where(SiteSetting.key.in_(_SMS_KEYS)))
     rows = {row.key: row.value for row in result.scalars().all()}
     return {
         "api_key": rows.get("fast2sms_api_key") or None,
         "provider": rows.get("otp_provider") or "sms",
+        "otp_id": rows.get("fast2sms_otp_id") or None,
     }
 
 
@@ -100,7 +101,9 @@ async def request_otp(phone: str, db: AsyncSession, redis: aioredis.Redis) -> di
     await increment_rate_limit(phone)
 
     sms = await _load_sms_settings(db)
-    if sms["provider"] == "whatsapp":
+    provider = sms["provider"]
+
+    if provider == "whatsapp":
         wa = await _load_whatsapp_settings(db)
         await send_otp_whatsapp(
             phone, otp,
@@ -109,8 +112,20 @@ async def request_otp(phone: str, db: AsyncSession, redis: aioredis.Redis) -> di
             template_name=wa["template_name"],
             template_lang=wa["template_lang"],
         )
-    else:
-        await send_otp_sms(phone, otp, api_key_override=sms["api_key"])
+    elif provider == "fast2sms_whatsapp":
+        await send_otp_sms(
+            phone, otp,
+            api_key_override=sms["api_key"],
+            otp_id=sms["otp_id"],
+            channel="whatsapp",
+        )
+    else:  # "sms"
+        await send_otp_sms(
+            phone, otp,
+            api_key_override=sms["api_key"],
+            otp_id=sms["otp_id"],
+            channel="default",
+        )
 
     return {"message": f"OTP sent to {phone}", "expires_in": settings.OTP_EXPIRY_MINUTES * 60}
 

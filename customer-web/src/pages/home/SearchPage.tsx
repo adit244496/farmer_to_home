@@ -47,9 +47,9 @@ export default function SearchPage() {
   const hasMore = false
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 sm:pb-0">
+    <div className="h-dvh flex flex-col bg-gray-50 pb-20 sm:pb-0">
       {/* Sticky search header — replaces the global Header on this page */}
-      <header className="sticky top-0 z-50 bg-[#ede8e0] border-b border-[#d4c9bb]">
+      <header className="flex-shrink-0 sticky top-0 z-50 bg-[#ede8e0] border-b border-[#d4c9bb]">
         <div className="h-[2px] w-full bg-gradient-to-r from-[#d4a84c] via-[#e8c47a] to-[#d4a84c]" />
         <form onSubmit={handleSearch} className="max-w-6xl mx-auto px-3 h-14 flex items-center gap-2">
           <button type="button" onClick={() => navigate(-1)}
@@ -71,7 +71,8 @@ export default function SearchPage() {
         </form>
       </header>
 
-      <div className="max-w-6xl mx-auto px-4 py-4">
+      <div className="flex-1 overflow-y-auto">
+      <div className="px-4 sm:px-6 lg:px-10 py-4">
 
         {/* Filters */}
         <div className="flex items-center gap-2 mb-4">
@@ -121,6 +122,7 @@ export default function SearchPage() {
           </>
         )}
       </div>
+      </div>{/* end scroll wrapper */}
 
       <BottomNav />
     </div>

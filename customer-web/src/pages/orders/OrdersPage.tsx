@@ -30,9 +30,10 @@ export default function OrdersPage() {
   const orders = data?.results ?? []
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-20 sm:pb-0">
+    <div className="h-dvh flex flex-col bg-gray-50 pb-20 sm:pb-0">
       <Header />
-      <div className="max-w-2xl mx-auto px-4 py-4">
+      <div className="flex-1 overflow-y-auto">
+      <div className="max-w-3xl mx-auto px-4 py-4">
         <h1 className="text-xl font-bold text-gray-900 mb-4">{t('myOrders')}</h1>
 
         {/* Tabs */}
@@ -85,6 +86,7 @@ export default function OrdersPage() {
           </div>
         )}
       </div>
+      </div>{/* end scroll wrapper */}
       <BottomNav />
     </div>
   )

@@ -106,7 +106,7 @@ export default function FarmerDetailPage() {
       const form = new FormData()
       form.append('file', file)
       form.append('media_type', mediaType)
-      await api.post(`/admin/farmers/${id}/media`, form, { headers: { 'Content-Type': 'multipart/form-data' } })
+      await api.post(`/admin/farmers/${id}/media`, form)
       invalidate()
       setActionSuccess('Media uploaded.')
     } catch (err: unknown) {
@@ -270,18 +270,22 @@ export default function FarmerDetailPage() {
           </div>
         )}
 
-        {farmer.bio && (
-          <div className="mt-5">
+        <div className="mt-5 border-t border-gray-100 pt-5 grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
             <p className="text-xs font-medium text-gray-500 mb-1">Bio</p>
-            <p className="text-sm text-gray-600">{farmer.bio}</p>
+            {farmer.bio
+              ? <p className="text-sm text-gray-700 leading-relaxed">{farmer.bio}</p>
+              : <button onClick={() => setEditOpen(true)} className="text-sm text-gray-400 italic hover:text-farm-green-600 transition-colors">Click Edit to add bio…</button>
+            }
           </div>
-        )}
-        {farmer.farm_description && (
-          <div className="mt-4">
+          <div>
             <p className="text-xs font-medium text-gray-500 mb-1">Farm Description</p>
-            <p className="text-sm text-gray-600">{farmer.farm_description}</p>
+            {farmer.farm_description
+              ? <p className="text-sm text-gray-700 leading-relaxed">{farmer.farm_description}</p>
+              : <button onClick={() => setEditOpen(true)} className="text-sm text-gray-400 italic hover:text-farm-green-600 transition-colors">Click Edit to add farm description…</button>
+            }
           </div>
-        )}
+        </div>
       </div>
 
       {/* ── Media gallery ── */}
