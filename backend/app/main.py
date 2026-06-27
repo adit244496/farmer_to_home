@@ -44,6 +44,18 @@ async def lifespan(app: FastAPI):
                 "benefits JSON DEFAULT '[]'::json"
             ))
             await conn.execute(text(
+                "ALTER TABLE products ADD COLUMN IF NOT EXISTS "
+                "benefits_mr JSON DEFAULT '[]'::json"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE products ADD COLUMN IF NOT EXISTS "
+                "critical_difference_en JSON DEFAULT '[]'::json"
+            ))
+            await conn.execute(text(
+                "ALTER TABLE products ADD COLUMN IF NOT EXISTS "
+                "critical_difference_mr JSON DEFAULT '[]'::json"
+            ))
+            await conn.execute(text(
                 "ALTER TABLE products ALTER COLUMN farmer_id DROP NOT NULL"
             ))
             await conn.execute(text("""
