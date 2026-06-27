@@ -42,9 +42,9 @@ export default function SearchPage() {
     setSearchParams(query ? { q: query } : {})
   }
 
-  const products = data?.results ?? []
-  const totalCount = data?.count ?? 0
-  const hasMore = !!data?.next
+  const products = data?.items ?? []
+  const totalCount = data?.total ?? 0
+  const hasMore = false
 
   return (
     <div className="min-h-screen bg-gray-50 pb-20 sm:pb-0">

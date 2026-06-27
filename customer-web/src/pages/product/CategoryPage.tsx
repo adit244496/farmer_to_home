@@ -61,7 +61,7 @@ export default function CategoryPage() {
     enabled: !!slug,
   })
 
-  const products = data?.results ?? []
+  const products = data?.items ?? []
   const currentCat = categories.find((c) => c.slug === slug)
   const catName = currentCat
     ? (language === 'mr' ? currentCat.name_mr : currentCat.name_en)

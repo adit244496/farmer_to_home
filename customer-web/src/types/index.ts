@@ -167,8 +167,10 @@ export interface Notification {
 }
 
 export interface PaginatedResponse<T> {
-  results: T[]
-  count: number
-  next: string | null
-  previous: string | null
+  items: T[]
+  results?: T[]  // legacy alias
+  total: number
+  page: number
+  page_size: number
+  pages: number
 }
