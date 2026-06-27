@@ -1454,7 +1454,7 @@ function AddProductModal({
   const [form, setForm] = useState({
     category_id: defaultCategoryId, name_en: '', name_mr: '',
     price: '', unit: 'kg', min_order_qty: '1', stock: '0',
-    is_organic: false,
+    organic_mode: 'none' as 'none' | 'organic' | 'both',
     harvest_date: '', best_before_date: '', description_en: '', description_mr: '',
   })
   const [tags, setTags] = useState<string[]>([])
@@ -1515,24 +1515,31 @@ function AddProductModal({
     const price = parseFloat(form.price)
     if (isNaN(price) || price <= 0) { setError('Enter a valid price.'); return }
     setSaving(true); setError('')
+
+    const base = {
+      category_id: form.category_id,
+      name_en: form.name_en.trim(), name_mr: form.name_mr.trim(),
+      price, unit: form.unit,
+      min_order_qty: parseInt(form.min_order_qty) || 1,
+      stock: parseInt(form.stock) || 0,
+      harvest_date: form.harvest_date || null,
+      best_before_date: form.best_before_date || null,
+      description_en: form.description_en || null,
+      description_mr: form.description_mr || null,
+      tags, benefits, benefits_mr: benefitsMr,
+      critical_difference_en: criticalDiffEn,
+      critical_difference_mr: criticalDiffMr,
+    }
+
     try {
-      await api.post('/admin/products', {
-        category_id: form.category_id,
-        name_en: form.name_en.trim(), name_mr: form.name_mr.trim(),
-        price, unit: form.unit,
-        min_order_qty: parseInt(form.min_order_qty) || 1,
-        stock: parseInt(form.stock) || 0,
-        is_organic: form.is_organic,
-        harvest_date: form.harvest_date || null,
-        best_before_date: form.best_before_date || null,
-        description_en: form.description_en || null,
-        description_mr: form.description_mr || null,
-        tags,
-        benefits,
-        benefits_mr: benefitsMr,
-        critical_difference_en: criticalDiffEn,
-        critical_difference_mr: criticalDiffMr,
-      })
+      if (form.organic_mode === 'both') {
+        await Promise.all([
+          api.post('/admin/products', { ...base, is_organic: false }),
+          api.post('/admin/products', { ...base, is_organic: true }),
+        ])
+      } else {
+        await api.post('/admin/products', { ...base, is_organic: form.organic_mode === 'organic' })
+      }
       onCreated()
       onClose()
     } catch (err: unknown) {
@@ -1610,12 +1617,38 @@ function AddProductModal({
             </div>
           </div>
 
-          <div className="flex gap-6">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <input type="checkbox" checked={form.is_organic} onChange={(e) => set('is_organic', e.target.checked)}
-                className="h-4 w-4 rounded text-farm-green-600 focus:ring-farm-green-500" />
-              <span className="text-sm text-gray-700 flex items-center gap-1"><Leaf className="h-3.5 w-3.5 text-green-600" /> Organic</span>
-            </label>
+          <div>
+            <label className="block text-xs text-gray-500 mb-2 font-medium">Organic Type</label>
+            <div className="flex rounded-lg border border-gray-300 overflow-hidden w-fit">
+              {(['none', 'organic', 'both'] as const).map((mode) => {
+                const labels = { none: 'Non-Organic', organic: 'Organic', both: 'Both' }
+                const active = form.organic_mode === mode
+                return (
+                  <button
+                    key={mode}
+                    type="button"
+                    onClick={() => set('organic_mode', mode)}
+                    className={clsx(
+                      'flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-colors border-r last:border-r-0 border-gray-300',
+                      active
+                        ? mode === 'none'
+                          ? 'bg-gray-700 text-white'
+                          : 'bg-green-600 text-white'
+                        : 'bg-white text-gray-600 hover:bg-gray-50',
+                    )}
+                  >
+                    {mode !== 'none' && <Leaf className="h-3.5 w-3.5" />}
+                    {labels[mode]}
+                    {mode === 'both' && <span className="text-[10px] opacity-80 ml-0.5">(×2)</span>}
+                  </button>
+                )
+              })}
+            </div>
+            {form.organic_mode === 'both' && (
+              <p className="text-xs text-green-700 mt-1.5 flex items-center gap-1">
+                <Leaf className="h-3 w-3" /> Creates two products: one non-organic + one organic with the same details.
+              </p>
+            )}
           </div>
 
           <div className="grid grid-cols-2 gap-3">
