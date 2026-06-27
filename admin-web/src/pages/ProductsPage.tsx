@@ -285,6 +285,10 @@ function ProductDetailModal({
   const [stockLoading, setStockLoading] = useState(false)
   const [stockMsg, setStockMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
 
+  // ── Duplicate as opposite organic state ──
+  const [duplicating, setDuplicating] = useState(false)
+  const [duplicateMsg, setDuplicateMsg] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+
   // Categories for edit dropdown (fetched lazily when editing opens)
   const { data: categories } = useQuery<AdminCategoryOption[]>({
     queryKey: ['admin-categories-list'],
@@ -569,6 +573,40 @@ function ProductDetailModal({
       setStockMsg({ type: 'error', text: e?.response?.data?.detail ?? 'Failed to update stock.' })
     } finally {
       setStockLoading(false)
+    }
+  }
+
+  const handleDuplicateAsOpposite = async () => {
+    setDuplicating(true)
+    setDuplicateMsg(null)
+    try {
+      await api.post('/admin/products', {
+        category_id: product.category_id,
+        name_en: product.name_en,
+        name_mr: product.name_mr,
+        description_en: product.description_en || null,
+        description_mr: product.description_mr || null,
+        price: product.price,
+        unit: product.unit,
+        min_order_qty: product.min_order_qty,
+        stock: product.stock,
+        is_organic: !product.is_organic,
+        harvest_date: product.harvest_date || null,
+        best_before_date: product.best_before_date || null,
+        tags: product.tags ?? [],
+        benefits: product.benefits ?? [],
+        benefits_mr: product.benefits_mr ?? [],
+        critical_difference_en: product.critical_difference_en ?? [],
+        critical_difference_mr: product.critical_difference_mr ?? [],
+      })
+      const label = product.is_organic ? 'Non-organic' : 'Organic'
+      setDuplicateMsg({ type: 'success', text: `${label} copy created. Find it in the product list.` })
+      onRefresh()
+    } catch (err: unknown) {
+      const e = err as { response?: { data?: { detail?: string } } }
+      setDuplicateMsg({ type: 'error', text: e?.response?.data?.detail ?? 'Failed to create copy.' })
+    } finally {
+      setDuplicating(false)
     }
   }
 
@@ -1321,6 +1359,42 @@ function ProductDetailModal({
                 </button>
               </div>
             </div>
+          </section>
+
+          {/* ── Duplicate as Opposite ── */}
+          <section className="bg-gray-50 rounded-xl p-4 space-y-3">
+            <div>
+              <h3 className="text-sm font-semibold text-gray-700 flex items-center gap-2">
+                <Plus className="h-4 w-4" /> Create {product.is_organic ? 'Non-Organic' : 'Organic'} Copy
+              </h3>
+              <p className="text-xs text-gray-500 mt-0.5">
+                Duplicates this product with{' '}
+                <span className={product.is_organic ? 'text-gray-700 font-medium' : 'text-green-700 font-medium'}>
+                  is_organic = {String(!product.is_organic)}
+                </span>
+                . All other details (name, price, stock, highlights) are copied.
+              </p>
+            </div>
+            <button
+              onClick={handleDuplicateAsOpposite}
+              disabled={duplicating}
+              className={clsx(
+                'flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-colors disabled:opacity-50',
+                product.is_organic
+                  ? 'bg-gray-100 hover:bg-gray-200 text-gray-700'
+                  : 'bg-green-50 hover:bg-green-100 text-green-700 border border-green-200',
+              )}
+            >
+              {duplicating
+                ? <Loader2 className="h-4 w-4 animate-spin" />
+                : <Leaf className="h-4 w-4" />}
+              {duplicating ? 'Creating…' : `Create ${product.is_organic ? 'Non-Organic' : 'Organic'} Copy`}
+            </button>
+            {duplicateMsg && (
+              <p className={clsx('text-xs', duplicateMsg.type === 'success' ? 'text-green-700' : 'text-red-600')}>
+                {duplicateMsg.type === 'success' ? '✓ ' : '✕ '}{duplicateMsg.text}
+              </p>
+            )}
           </section>
 
           {/* ── Discount Management ── */}
