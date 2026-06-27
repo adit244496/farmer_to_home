@@ -58,6 +58,9 @@ async def lifespan(app: FastAPI):
             await conn.execute(text(
                 "ALTER TABLE products ALTER COLUMN farmer_id DROP NOT NULL"
             ))
+            await conn.execute(text(
+                "ALTER TABLE reviews ALTER COLUMN order_id DROP NOT NULL"
+            ))
             await conn.execute(text("""
                 CREATE TABLE IF NOT EXISTS farmer_product_listings (
                     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
