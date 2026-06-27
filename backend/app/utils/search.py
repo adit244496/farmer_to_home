@@ -173,6 +173,7 @@ async def build_search_query(
         .options(
             selectinload(Product.images),
             selectinload(Product.farmer).selectinload(User.farmer_profile),
+            selectinload(Product.farmer_listings).selectinload(FarmerProductListing.farmer).selectinload(User.farmer_profile),
             selectinload(Product.category),
             selectinload(Product.discount),
         )

@@ -4,11 +4,30 @@ from datetime import datetime, timezone
 
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from app.core.database import get_db
 from app.schemas.product import SearchParams, ProductOut, PaginatedProductsOut
 from app.services import product_service
+
+
+async def _get_ratings_map(product_ids: list, db) -> dict:
+    from app.models.review import Review
+    if not product_ids:
+        return {}
+    rows = (await db.execute(
+        select(
+            Review.product_id,
+            func.avg(Review.rating).label('avg'),
+            func.count(Review.id).label('cnt'),
+        )
+        .where(Review.product_id.in_(product_ids))
+        .group_by(Review.product_id)
+    )).all()
+    return {
+        row.product_id: (round(float(row.avg), 1), int(row.cnt))
+        for row in rows
+    }
 
 
 def _serialize_discount(discount) -> Optional[dict]:
@@ -24,6 +43,25 @@ def _serialize_discount(discount) -> Optional[dict]:
         "valid_from": discount.valid_from.isoformat() if discount.valid_from else None,
         "valid_until": discount.valid_until.isoformat() if discount.valid_until else None,
     }
+
+def _get_farmer_info(product) -> Optional[dict]:
+    """Return farmer info from products.farmer_id first, then fall back to farmer_product_listings."""
+    farmer = product.farmer
+    if not farmer and hasattr(product, 'farmer_listings') and product.farmer_listings:
+        active = [l for l in product.farmer_listings if l.status == 'ACTIVE']
+        if active:
+            farmer = active[0].farmer
+    if not farmer:
+        return None
+    fp = farmer.farmer_profile
+    return {
+        "id": str(farmer.id),
+        "name": farmer.name,
+        "district": fp.district if fp else None,
+        "rating": fp.rating if fp else 0,
+        "photo": fp.profile_photo_url if fp else None,
+    }
+
 
 router = APIRouter(prefix="/products", tags=["Products"])
 
@@ -72,6 +110,8 @@ async def list_products(
     )
     products, total = await product_service.search_products(params, db)
 
+    ratings_map = await _get_ratings_map([p.id for p in products], db)
+
     items = []
     for p in products:
         images_list = []
@@ -85,10 +125,22 @@ async def list_products(
             if images_list:
                 images_list[0]["is_primary"] = True
 
-        farmer_name = p.farmer.name if p.farmer else None
+        # Prefer direct farmer_id link, fall back to first active farmer_product_listing
+        _farmer = p.farmer
+        if not _farmer and hasattr(p, 'farmer_listings') and p.farmer_listings:
+            active_l = [l for l in p.farmer_listings if l.status == 'ACTIVE']
+            if active_l:
+                _farmer = active_l[0].farmer
+        farmer_name = _farmer.name if _farmer else None
         farmer_district = None
-        if p.farmer and p.farmer.farmer_profile:
-            farmer_district = p.farmer.farmer_profile.district
+        farmer_rating = None
+        if _farmer and _farmer.farmer_profile:
+            farmer_district = _farmer.farmer_profile.district
+            farmer_rating = float(_farmer.farmer_profile.rating) if _farmer.farmer_profile.rating is not None else None
+
+        avg_r, rev_cnt = ratings_map.get(p.id, (None, 0))
+        crit_diff = " ".join(p.critical_difference_en) if p.critical_difference_en else None
+        crit_diff_mr = " ".join(p.critical_difference_mr) if p.critical_difference_mr else None
 
         items.append({
             "id": p.id,
@@ -97,18 +149,24 @@ async def list_products(
             "price": p.price,
             "unit": p.unit,
             "stock": p.stock,
+            "min_order_qty": p.min_order_qty,
             "is_organic": p.is_organic,
             "status": p.status,
             "primary_image": primary_image,
             "images": images_list,
             "category_slug": p.category.slug if p.category else None,
             "benefits": p.benefits or [],
-            "min_order_qty": p.min_order_qty,
-            "farmer_name": farmer_name,
+            "benefits_mr": p.benefits_mr or [],
+            "critical_difference": crit_diff,
+            "critical_difference_mr": crit_diff_mr,
             "farmer_id": str(p.farmer_id) if p.farmer_id else None,
+            "farmer_name": farmer_name,
             "farmer_district": farmer_district,
+            "farmer_rating": farmer_rating,
             "discount": _serialize_discount(p.discount),
-            "rating": None,
+            "avg_rating": avg_r,
+            "rating": avg_r,
+            "review_count": rev_cnt,
             "created_at": p.created_at,
         })
 
@@ -127,6 +185,8 @@ async def search_products(
     params = SearchParams(q=q, page=page, page_size=page_size)
     products, total = await product_service.search_products(params, db)
 
+    ratings_map = await _get_ratings_map([p.id for p in products], db)
+
     items = []
     for p in products:
         images_list = []
@@ -141,8 +201,14 @@ async def search_products(
                 images_list[0]["is_primary"] = True
 
         farmer_district = None
+        farmer_rating = None
         if p.farmer and p.farmer.farmer_profile:
             farmer_district = p.farmer.farmer_profile.district
+            farmer_rating = float(p.farmer.farmer_profile.rating) if p.farmer.farmer_profile.rating is not None else None
+
+        avg_r, rev_cnt = ratings_map.get(p.id, (None, 0))
+        crit_diff = " ".join(p.critical_difference_en) if p.critical_difference_en else None
+        crit_diff_mr = " ".join(p.critical_difference_mr) if p.critical_difference_mr else None
 
         items.append({
             "id": p.id,
@@ -151,16 +217,24 @@ async def search_products(
             "price": p.price,
             "unit": p.unit,
             "stock": p.stock,
+            "min_order_qty": p.min_order_qty,
             "is_organic": p.is_organic,
             "status": p.status,
             "primary_image": primary_image,
             "images": images_list,
             "category_slug": p.category.slug if p.category else None,
             "benefits": p.benefits or [],
+            "benefits_mr": p.benefits_mr or [],
+            "critical_difference": crit_diff,
+            "critical_difference_mr": crit_diff_mr,
+            "farmer_id": str(p.farmer_id) if p.farmer_id else None,
             "farmer_name": p.farmer.name if p.farmer else None,
             "farmer_district": farmer_district,
+            "farmer_rating": farmer_rating,
             "discount": _serialize_discount(p.discount),
-            "rating": None,
+            "avg_rating": avg_r,
+            "rating": avg_r,
+            "review_count": rev_cnt,
             "created_at": p.created_at,
         })
 
@@ -248,20 +322,14 @@ async def get_product_detail(product_id: UUID, db: AsyncSession = Depends(get_db
         "tags": product.tags,
         "benefits": product.benefits or [],
         "benefits_mr": product.benefits_mr or [],
-        "critical_difference_en": product.critical_difference_en or [],
-        "critical_difference_mr": product.critical_difference_mr or [],
+        "critical_difference": " ".join(product.critical_difference_en) if product.critical_difference_en else None,
+        "critical_difference_mr": " ".join(product.critical_difference_mr) if product.critical_difference_mr else None,
         "status": product.status,
         "images": [
             {"id": str(img.id), "image_url": img.image_url, "is_primary": img.is_primary, "order": img.display_order}
             for img in sorted(product.images, key=lambda x: x.display_order)
         ],
-        "farmer": {
-            "id": str(product.farmer.id),
-            "name": product.farmer.name,
-            "district": product.farmer.farmer_profile.district if product.farmer.farmer_profile else None,
-            "rating": product.farmer.farmer_profile.rating if product.farmer.farmer_profile else 0,
-            "photo": product.farmer.farmer_profile.profile_photo_url if product.farmer.farmer_profile else None,
-        } if product.farmer else None,
+        "farmer": _get_farmer_info(product),
         "discount": _serialize_discount(product.discount),
         "avg_rating": avg_rating,
         "review_count": len(product.reviews),
@@ -328,8 +396,13 @@ async def get_product_reviews(
                 "id": str(r.id),
                 "rating": r.rating,
                 "comment": r.comment,
-                "photo_url": r.photo_url,
-                "customer_name": r.customer.name if r.customer else "Anonymous",
+                "photos": [r.photo_url] if r.photo_url else [],
+                "product": str(r.product_id) if r.product_id else None,
+                "customer": {
+                    "id": str(r.customer.id) if r.customer else 0,
+                    "full_name": r.customer.name if r.customer else "Anonymous",
+                    "profile_photo": None,
+                },
                 "created_at": r.created_at.isoformat(),
             }
             for r in result["items"]
