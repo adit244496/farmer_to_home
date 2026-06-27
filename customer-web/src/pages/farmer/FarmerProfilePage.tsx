@@ -283,7 +283,7 @@ function FarmerReviewCard({ review, language }: { review: Review; language: stri
           {review.customer.profile_photo ? (
             <img src={review.customer.profile_photo} alt="" className="w-full h-full object-cover" />
           ) : (
-            review.customer.full_name[0]
+            (review.customer.full_name || '?')[0]
           )}
         </div>
 

@@ -3,7 +3,7 @@ from typing import Optional, List
 
 from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File, Form, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.orm import selectinload
 
 from app.core.database import get_db
@@ -444,4 +444,73 @@ async def get_farmer_products_public(
         "total": total,
         "page": page,
         "pages": (total + page_size - 1) // page_size,
+    }
+
+
+@router.get("/{farmer_id}/reviews", summary="Reviews for a farmer's products")
+async def get_farmer_reviews(
+    farmer_id: uuid.UUID,
+    page: int = Query(1, ge=1),
+    page_size: int = Query(20, ge=1, le=100),
+    db: AsyncSession = Depends(get_db),
+):
+    """Get all product reviews for a farmer (via direct farmer_id or farmer_product_listings)."""
+    from app.models.review import Review
+    from app.models.product import FarmerProductListing
+
+    # Collect product IDs belonging to this farmer
+    direct = await db.execute(
+        select(Product.id).where(Product.farmer_id == farmer_id)
+    )
+    listing = await db.execute(
+        select(FarmerProductListing.product_id)
+        .where(FarmerProductListing.farmer_id == farmer_id)
+    )
+    product_ids = list({r[0] for r in direct.all()} | {r[0] for r in listing.all()})
+
+    if not product_ids:
+        return {"items": [], "total": 0, "page": page, "pages": 0, "avg_rating": 0}
+
+    total_result = await db.execute(
+        select(func.count(Review.id)).where(Review.product_id.in_(product_ids))
+    )
+    total = total_result.scalar() or 0
+
+    avg_result = await db.execute(
+        select(func.avg(Review.rating)).where(Review.product_id.in_(product_ids))
+    )
+    avg_rating = round(float(avg_result.scalar() or 0), 1)
+
+    offset = (page - 1) * page_size
+    reviews_result = await db.execute(
+        select(Review)
+        .options(selectinload(Review.customer), selectinload(Review.product))
+        .where(Review.product_id.in_(product_ids))
+        .order_by(Review.created_at.desc())
+        .offset(offset)
+        .limit(page_size)
+    )
+    reviews = reviews_result.scalars().all()
+
+    return {
+        "items": [
+            {
+                "id": str(r.id),
+                "rating": r.rating,
+                "comment": r.comment,
+                "photos": [r.photo_url] if r.photo_url else [],
+                "created_at": r.created_at.isoformat(),
+                "customer": {
+                    "id": str(r.customer.id) if r.customer else None,
+                    "full_name": r.customer.name if r.customer else "Anonymous",
+                    "profile_photo": None,
+                },
+                "product": str(r.product_id),
+            }
+            for r in reviews
+        ],
+        "total": total,
+        "page": page,
+        "pages": (total + page_size - 1) // page_size,
+        "avg_rating": avg_rating,
     }
