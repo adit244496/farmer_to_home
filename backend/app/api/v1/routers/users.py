@@ -1,7 +1,8 @@
 from datetime import datetime
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 
 from app.core.database import get_db
 from app.core.security import get_current_user
@@ -48,7 +49,11 @@ async def update_me(
     for field, value in update_data.items():
         setattr(current_user, field, value)
     current_user.updated_at = datetime.utcnow()
-    await db.flush()
+    try:
+        await db.flush()
+    except IntegrityError:
+        await db.rollback()
+        raise HTTPException(status_code=409, detail="Phone number already registered to another account")
     return {
         "id": str(current_user.id),
         "phone": current_user.phone,
