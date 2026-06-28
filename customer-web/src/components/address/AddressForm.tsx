@@ -1,5 +1,6 @@
-import { useState } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { MapPin, Loader2, Navigation } from 'lucide-react'
+import { SearchableSelect } from '@/components/ui/SearchableSelect'
 import type { AddressCreateData } from '@/services/order.service'
 
 const INDIAN_STATES = [
@@ -37,10 +38,37 @@ export function AddressForm({ initial, onSave, onCancel, saveLabel = 'Save Addre
   const [form, setForm] = useState<AddressCreateData>({ ...EMPTY, ...initial })
   const [loading, setLoading] = useState(false)
   const [locating, setLocating] = useState(false)
+  const [pinLookup, setPinLookup] = useState(false)
   const [error, setError] = useState('')
+  const pinLookupRef = useRef<ReturnType<typeof setTimeout> | null>(null)
 
   const set = (k: keyof AddressCreateData, v: string | boolean | number) =>
     setForm((p) => ({ ...p, [k]: v }))
+
+  useEffect(() => {
+    if (form.pin_code.length !== 6) return
+    if (pinLookupRef.current) clearTimeout(pinLookupRef.current)
+    pinLookupRef.current = setTimeout(async () => {
+      setPinLookup(true)
+      try {
+        const res = await fetch(`https://api.postalpincode.in/pincode/${form.pin_code}`)
+        const data = await res.json()
+        if (data?.[0]?.Status === 'Success' && data[0].PostOffice?.length > 0) {
+          const po = data[0].PostOffice[0]
+          setForm((p) => ({
+            ...p,
+            city: po.Division || po.District || po.Name || p.city,
+            state: INDIAN_STATES.find((s) => s.toLowerCase() === (po.State || '').toLowerCase()) || po.State || p.state,
+          }))
+        }
+      } catch {
+        // silent — user can fill manually
+      } finally {
+        setPinLookup(false)
+      }
+    }, 400)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [form.pin_code])
 
   const useMyLocation = async () => {
     if (!navigator.geolocation) {
@@ -183,27 +211,31 @@ export function AddressForm({ initial, onSave, onCancel, saveLabel = 'Save Addre
 
         <div className="grid grid-cols-2 gap-3">
           <div>
+            <label className={labelCls}>PIN Code *</label>
+            <div className="relative">
+              <input className={inputCls} placeholder="6-digit PIN" inputMode="numeric" maxLength={6}
+                value={form.pin_code}
+                onChange={(e) => { set('pin_code', e.target.value.replace(/\D/g, '')); setError('') }} />
+              {pinLookup && (
+                <Loader2 className="absolute right-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 animate-spin text-[#0d9488]" />
+              )}
+            </div>
+          </div>
+          <div>
             <label className={labelCls}>City *</label>
             <input className={inputCls} placeholder="e.g. Pune" value={form.city}
               onChange={(e) => { set('city', e.target.value); setError('') }} />
-          </div>
-          <div>
-            <label className={labelCls}>PIN Code *</label>
-            <input className={inputCls} placeholder="6-digit PIN" inputMode="numeric" maxLength={6}
-              value={form.pin_code}
-              onChange={(e) => { set('pin_code', e.target.value.replace(/\D/g, '')); setError('') }} />
           </div>
         </div>
 
         <div>
           <label className={labelCls}>State *</label>
-          <select
-            className={inputCls + ' bg-white'}
+          <SearchableSelect
+            options={INDIAN_STATES}
             value={form.state}
-            onChange={(e) => set('state', e.target.value)}
-          >
-            {INDIAN_STATES.map((s) => <option key={s} value={s}>{s}</option>)}
-          </select>
+            onChange={(v) => set('state', v)}
+            placeholder="Select state…"
+          />
         </div>
 
         <label className="flex items-center gap-2 text-sm text-gray-700 cursor-pointer">

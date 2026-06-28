@@ -3,6 +3,18 @@ import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Loader2, AlertCircle, Eye, EyeOff, Mail, MessageSquare, CheckCircle, Save, ShoppingCart, MapPin } from 'lucide-react'
 import api from '@/lib/api'
 import clsx from 'clsx'
+import { SearchableSelect } from '@/components/SearchableSelect'
+import { TagInput } from '@/components/TagInput'
+
+const INDIAN_STATES = [
+  'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
+  'Goa', 'Gujarat', 'Haryana', 'Himachal Pradesh', 'Jharkhand', 'Karnataka',
+  'Kerala', 'Madhya Pradesh', 'Maharashtra', 'Manipur', 'Meghalaya', 'Mizoram',
+  'Nagaland', 'Odisha', 'Punjab', 'Rajasthan', 'Sikkim', 'Tamil Nadu',
+  'Telangana', 'Tripura', 'Uttar Pradesh', 'Uttarakhand', 'West Bengal',
+  'Andaman and Nicobar Islands', 'Chandigarh', 'Dadra and Nagar Haveli and Daman and Diu',
+  'Delhi', 'Jammu and Kashmir', 'Ladakh', 'Lakshadweep', 'Puducherry',
+]
 
 function WhatsAppIcon({ size = 20 }: { size?: number }) {
   return (
@@ -118,31 +130,48 @@ interface DeliveryZones {
   business_whatsapp: string
 }
 
+function splitTags(csv: string): string[] {
+  return csv.split(',').map((s) => s.trim()).filter(Boolean)
+}
+
+function joinTags(tags: string[]): string {
+  return tags.join(', ')
+}
+
 function DeliveryZonesCard() {
-  const [form, setForm] = useState<DeliveryZones | null>(null)
+  const [states, setStates] = useState<string[]>([])
+  const [cities, setCities] = useState<string[]>([])
+  const [pincodes, setPincodes] = useState<string[]>([])
+  const [whatsapp, setWhatsapp] = useState('')
+  const [addState, setAddState] = useState('')
   const [saving, setSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle')
+  const [loaded, setLoaded] = useState(false)
 
   const { isLoading, isError } = useQuery<DeliveryZones>({
     queryKey: ['admin-delivery-zones'],
     queryFn: async () => {
       const res = await api.get('/admin/settings/delivery-zones')
-      setForm(res.data)
-      return res.data
+      const d: DeliveryZones = res.data
+      setStates(splitTags(d.delivery_allowed_states))
+      setCities(splitTags(d.delivery_allowed_cities))
+      setPincodes(splitTags(d.delivery_allowed_pincodes))
+      setWhatsapp(d.business_whatsapp)
+      setLoaded(true)
+      return d
     },
   })
 
-  const set = (field: keyof DeliveryZones) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm((prev) => prev ? { ...prev, [field]: e.target.value } : prev)
-    setSaveStatus('idle')
-  }
-
   const handleSave = async () => {
-    if (!form) return
     setSaving(true)
     setSaveStatus('idle')
     try {
-      await api.patch('/admin/settings/delivery-zones', form)
+      await api.patch('/admin/settings/delivery-zones', {
+        delivery_allowed_states: joinTags(states),
+        delivery_allowed_cities: joinTags(cities),
+        delivery_allowed_pincodes: joinTags(pincodes),
+        business_whatsapp: whatsapp,
+      })
       setSaveStatus('success')
       setTimeout(() => setSaveStatus('idle'), 3000)
     } catch {
@@ -158,28 +187,14 @@ function DeliveryZonesCard() {
     </div>
   )
 
-  if (isError || !form) return (
+  if (isError || !loaded) return (
     <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-4">
       <AlertCircle className="h-5 w-5 flex-shrink-0" />
       <span className="text-sm">Failed to load delivery zone settings.</span>
     </div>
   )
 
-  const ZoneField = ({ label, field, placeholder, note }: {
-    label: string; field: keyof DeliveryZones; placeholder: string; note: string
-  }) => (
-    <div>
-      <label className="block text-xs font-medium text-gray-700 mb-1">{label}</label>
-      <textarea
-        rows={2}
-        value={form[field]}
-        onChange={set(field)}
-        placeholder={placeholder}
-        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-farm-green-400 resize-none"
-      />
-      <p className="text-xs text-gray-400 mt-1">{note}</p>
-    </div>
-  )
+  const unusedStates = INDIAN_STATES.filter((s) => !states.includes(s))
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-5">
@@ -198,31 +213,66 @@ function DeliveryZonesCard() {
       </div>
 
       <div className="space-y-4">
-        <ZoneField
-          label="Allowed States"
-          field="delivery_allowed_states"
-          placeholder="e.g. Maharashtra, Goa"
-          note="Comma-separated state names. Empty = all states allowed."
-        />
-        <ZoneField
-          label="Allowed Cities"
-          field="delivery_allowed_cities"
-          placeholder="e.g. Pune, Mumbai, Nashik"
-          note="Comma-separated city names (case-insensitive). Empty = all cities allowed."
-        />
-        <ZoneField
-          label="Allowed PIN Codes"
-          field="delivery_allowed_pincodes"
-          placeholder="e.g. 411001, 411002, 411057"
-          note="Comma-separated 6-digit PIN codes. Empty = all pincodes allowed."
-        />
+        {/* States — searchable dropdown to add */}
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Allowed States</label>
+          <div className="flex gap-2 mb-2">
+            <SearchableSelect
+              options={unusedStates}
+              value={addState}
+              onChange={(v) => {
+                if (v && !states.includes(v)) setStates((prev) => [...prev, v])
+                setAddState('')
+              }}
+              placeholder="Search and add a state…"
+              className="flex-1"
+            />
+          </div>
+          {states.length > 0 && (
+            <div className="flex flex-wrap gap-1.5">
+              {states.map((s) => (
+                <span key={s} className="inline-flex items-center gap-1 bg-farm-green-50 text-farm-green-700 text-xs font-medium px-2 py-1 rounded-md">
+                  {s}
+                  <button type="button" onClick={() => setStates((prev) => prev.filter((x) => x !== s))}
+                    className="text-farm-green-400 hover:text-farm-green-700">
+                    <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M18 6L6 18M6 6l12 12"/></svg>
+                  </button>
+                </span>
+              ))}
+            </div>
+          )}
+          <p className="text-xs text-gray-400 mt-1">Empty = all states allowed.</p>
+        </div>
+
+        {/* Cities — tag input */}
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Allowed Cities</label>
+          <TagInput
+            tags={cities}
+            onChange={setCities}
+            placeholder="Type city name and press Enter…"
+          />
+          <p className="text-xs text-gray-400 mt-1">Case-insensitive. Empty = all cities allowed.</p>
+        </div>
+
+        {/* Pincodes — tag input with 6-digit validation */}
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Allowed PIN Codes</label>
+          <TagInput
+            tags={pincodes}
+            onChange={setPincodes}
+            placeholder="Type 6-digit PIN and press Enter…"
+            validate={(pin) => /^\d{6}$/.test(pin)}
+          />
+          <p className="text-xs text-gray-400 mt-1">6-digit PIN codes only. Empty = all pincodes allowed.</p>
+        </div>
 
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">Business WhatsApp Number</label>
           <input
             type="text"
-            value={form.business_whatsapp}
-            onChange={set('business_whatsapp')}
+            value={whatsapp}
+            onChange={(e) => { setWhatsapp(e.target.value); setSaveStatus('idle') }}
             placeholder="e.g. 919876543210 (with country code, no +)"
             className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-farm-green-400"
           />
@@ -279,7 +329,8 @@ function CommerceSettingsCard() {
   })
 
   const set = (field: keyof CommerceSettings) => (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = parseFloat(e.target.value) || 0
+    const raw = e.target.value.replace(/[^0-9.]/g, '')
+    const val = raw === '' ? 0 : parseFloat(raw) || 0
     setForm((prev) => prev ? { ...prev, [field]: val } : prev)
     setSaveStatus('idle')
   }
@@ -318,16 +369,17 @@ function CommerceSettingsCard() {
     <div>
       <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
       <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden focus-within:border-farm-green-400">
-        {prefix && <span className="px-3 py-2 bg-gray-50 text-sm text-gray-500 border-r border-gray-200">{prefix}</span>}
+        {prefix && <span className="flex-shrink-0 px-3 py-2 bg-gray-50 text-sm text-gray-500 border-r border-gray-200">{prefix}</span>}
         <input
-          type="number"
-          min="0"
-          step="0.01"
-          value={form[field]}
+          type="text"
+          inputMode="decimal"
+          pattern="[0-9]*\.?[0-9]*"
+          value={form[field] === 0 ? '' : String(form[field])}
           onChange={set(field)}
-          className="flex-1 px-3 py-2 text-sm outline-none bg-white"
+          placeholder="0"
+          className="min-w-0 flex-1 px-3 py-2 text-sm outline-none bg-white"
         />
-        {suffix && <span className="px-3 py-2 bg-gray-50 text-sm text-gray-500 border-l border-gray-200">{suffix}</span>}
+        {suffix && <span className="flex-shrink-0 px-3 py-2 bg-gray-50 text-sm text-gray-500 border-l border-gray-200">{suffix}</span>}
       </div>
       {note && <p className="text-xs text-gray-400 mt-1">{note}</p>}
     </div>
