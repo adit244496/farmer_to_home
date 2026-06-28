@@ -68,8 +68,13 @@ export default function FarmerDetailPage() {
       invalidate()
       setActionSuccess(successMsg ?? 'Action completed.')
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { detail?: string } } }
-      setActionError(e?.response?.data?.detail ?? `Failed to ${action}.`)
+      const e = err as { response?: { data?: { detail?: unknown } } }
+      const detail = e?.response?.data?.detail
+      setActionError(
+        Array.isArray(detail)
+          ? detail.map((d: { msg?: string }) => d.msg ?? 'Error').join(', ')
+          : typeof detail === 'string' ? detail : `Failed to ${action}.`
+      )
     } finally {
       setActionLoading(null)
     }
@@ -90,8 +95,13 @@ export default function FarmerDetailPage() {
       setDeleteModal(false)
       navigate(-1)
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { detail?: string } } }
-      setActionError(e?.response?.data?.detail ?? 'Failed to delete farmer.')
+      const e = err as { response?: { data?: { detail?: unknown } } }
+      const detail = e?.response?.data?.detail
+      setActionError(
+        Array.isArray(detail)
+          ? detail.map((d: { msg?: string }) => d.msg ?? 'Error').join(', ')
+          : typeof detail === 'string' ? detail : 'Failed to delete farmer.'
+      )
       setActionLoading(null)
     }
   }
@@ -106,12 +116,18 @@ export default function FarmerDetailPage() {
       const form = new FormData()
       form.append('file', file)
       form.append('media_type', mediaType)
-      await api.post(`/admin/farmers/${id}/media`, form)
+      // Clear default Content-Type so browser sets multipart/form-data with boundary
+      await api.post(`/admin/farmers/${id}/media`, form, { headers: { 'Content-Type': undefined } })
       invalidate()
       setActionSuccess('Media uploaded.')
     } catch (err: unknown) {
-      const e = err as { response?: { data?: { detail?: string } } }
-      setActionError(e?.response?.data?.detail ?? 'Upload failed.')
+      const e = err as { response?: { data?: { detail?: unknown } } }
+      const detail = e?.response?.data?.detail
+      setActionError(
+        Array.isArray(detail)
+          ? detail.map((d: { msg?: string }) => d.msg ?? 'Unknown error').join(', ')
+          : typeof detail === 'string' ? detail : 'Upload failed.'
+      )
     } finally {
       setUploadingMedia(false)
       if (fileInputRef.current) fileInputRef.current.value = ''

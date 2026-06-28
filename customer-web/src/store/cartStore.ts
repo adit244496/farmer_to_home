@@ -6,8 +6,11 @@ interface CartState {
   items: CartItem[]
   loading: boolean
   subtotal: number
+  cartDiscount: number
   deliveryCharge: number
+  gst: number
   totalAmount: number
+  minOrderValue: number
   fetchCart: () => Promise<void>
   addItem: (productId: string, quantity: number) => Promise<void>
   updateItem: (productId: string, quantity: number) => Promise<void>
@@ -19,8 +22,11 @@ export const useCartStore = create<CartState>((set, get) => ({
   items: [],
   loading: false,
   subtotal: 0,
+  cartDiscount: 0,
   deliveryCharge: 0,
+  gst: 0,
   totalAmount: 0,
+  minOrderValue: 0,
 
   fetchCart: async () => {
     set({ loading: true })
@@ -30,8 +36,11 @@ export const useCartStore = create<CartState>((set, get) => ({
       set({
         items,
         subtotal: cart.subtotal,
+        cartDiscount: cart.cart_discount ?? 0,
         deliveryCharge: cart.delivery_charge,
+        gst: cart.gst ?? 0,
         totalAmount: cart.total,
+        minOrderValue: cart.min_order_value ?? 0,
         loading: false,
       })
     } catch {
@@ -54,5 +63,5 @@ export const useCartStore = create<CartState>((set, get) => ({
     await get().fetchCart()
   },
 
-  clear: () => set({ items: [], subtotal: 0, deliveryCharge: 0, totalAmount: 0 }),
+  clear: () => set({ items: [], subtotal: 0, cartDiscount: 0, deliveryCharge: 0, gst: 0, totalAmount: 0, minOrderValue: 0 }),
 }))

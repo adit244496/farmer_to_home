@@ -36,9 +36,12 @@ class CartItemOut(BaseModel):
 class CartOut(BaseModel):
     items: List[CartItemOut]
     subtotal: Decimal
+    cart_discount: Decimal = Decimal("0")
     delivery_charge: Decimal
+    gst: Decimal = Decimal("0")
     discount: Decimal
     total: Decimal
+    min_order_value: Decimal = Decimal("0")
     promo_code: Optional[str] = None
 
 

@@ -1245,7 +1245,7 @@ async def get_sms_settings(
     has_key = bool(rows.get("fast2sms_api_key") or settings.FAST2SMS_API_KEY)
     return {
         "fast2sms_api_key": API_KEY_MASK if has_key else "",
-        "otp_provider": rows.get("otp_provider") or "sms",
+        "otp_provider": rows.get("otp_provider") or "whatsapp",
         "fast2sms_otp_id": rows.get("fast2sms_otp_id") or "",
     }
 
@@ -1325,6 +1325,81 @@ async def update_whatsapp_settings(
 
     await db.commit()
     return {"message": "WhatsApp settings saved"}
+
+
+_DELIVERY_ZONE_KEYS = {"delivery_allowed_states", "delivery_allowed_cities", "delivery_allowed_pincodes", "business_whatsapp"}
+
+
+@router.get("/settings/delivery-zones", summary="Get delivery zone restrictions")
+async def get_delivery_zones(
+    admin=Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.models.settings import SiteSetting
+    result = await db.execute(select(SiteSetting).where(SiteSetting.key.in_(_DELIVERY_ZONE_KEYS)))
+    rows = {r.key: r.value or "" for r in result.scalars().all()}
+    return {k: rows.get(k, "") for k in _DELIVERY_ZONE_KEYS}
+
+
+@router.patch("/settings/delivery-zones", summary="Save delivery zone restrictions")
+async def update_delivery_zones(
+    body: dict,
+    admin=Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.models.settings import SiteSetting
+    for key, value in body.items():
+        if key not in _DELIVERY_ZONE_KEYS:
+            continue
+        result = await db.execute(select(SiteSetting).where(SiteSetting.key == key))
+        row = result.scalar_one_or_none()
+        if row:
+            row.value = str(value)
+        else:
+            db.add(SiteSetting(key=key, value=str(value)))
+    await db.commit()
+    return {"message": "Delivery zone settings saved"}
+
+
+_COMMERCE_DEFAULTS: dict[str, str] = {
+    "delivery_charge": "30",
+    "free_delivery_threshold": "300",
+    "min_order_value": "0",
+    "cart_discount_percent": "0",
+    "gst_percent": "0",
+}
+
+
+@router.get("/settings/commerce", summary="Get commerce / pricing settings")
+async def get_commerce_settings(
+    admin=Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return delivery fee, thresholds, discount % and GST %."""
+    from app.models.settings import SiteSetting
+    result = await db.execute(select(SiteSetting).where(SiteSetting.key.in_(_COMMERCE_DEFAULTS.keys())))
+    rows = {row.key: row.value for row in result.scalars().all()}
+    return {k: float(rows.get(k) or v) for k, v in _COMMERCE_DEFAULTS.items()}
+
+
+@router.patch("/settings/commerce", summary="Save commerce / pricing settings")
+async def update_commerce_settings(
+    body: dict,
+    admin=Depends(require_role("admin")),
+    db: AsyncSession = Depends(get_db),
+):
+    from app.models.settings import SiteSetting
+    for key, value in body.items():
+        if key not in _COMMERCE_DEFAULTS:
+            continue
+        result = await db.execute(select(SiteSetting).where(SiteSetting.key == key))
+        row = result.scalar_one_or_none()
+        if row:
+            row.value = str(float(value))
+        else:
+            db.add(SiteSetting(key=key, value=str(float(value))))
+    await db.commit()
+    return {"message": "Commerce settings saved"}
 
 
 @router.get("/orders", summary="All orders")

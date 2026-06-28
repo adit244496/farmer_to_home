@@ -82,7 +82,7 @@ export default function LoginPage() {
 
         <div className="relative w-full max-w-md">
           {/* Card */}
-          <div className="overflow-hidden rounded-3xl bg-white shadow-[0_20px_60px_-15px_rgba(13,148,136,0.2)] ring-1 ring-black/5">
+          <div className="overflow-hidden rounded-3xl bg-white shadow-[0_20px_60px_-15px_rgba(13,148,136,0.2)] ring-1 ring-black/5 border border-gray-100">
             {/* Logo header */}
             <div className="relative overflow-hidden rounded-t-3xl bg-gradient-to-b from-[#f0fdfa] to-white px-6 pt-8 pb-6 text-center">
               <div className="pointer-events-none absolute inset-x-0 top-0 mx-auto h-40 w-40 -translate-y-8 rounded-full bg-[#0d9488]/10 blur-3xl" />
@@ -227,11 +227,9 @@ export default function LoginPage() {
 
             {/* Trust footer */}
             <div className="border-t border-gray-100 bg-gray-50 px-8 py-4">
-              <div className="flex items-center justify-between gap-2 text-[11px] font-medium text-gray-400">
+              <div className="flex items-center justify-center gap-6 text-[11px] font-medium text-gray-400">
                 <span className="inline-flex items-center gap-1.5"><ShieldCheck className="h-3.5 w-3.5 text-[#0d9488]" /> Secure</span>
-                <span className="h-1 w-1 rounded-full bg-[#d4a23a]" />
                 <span className="inline-flex items-center gap-1.5"><Sprout className="h-3.5 w-3.5 text-[#0d9488]" /> Trusted Farmers</span>
-                <span className="h-1 w-1 rounded-full bg-[#d4a23a]" />
                 <span className="inline-flex items-center gap-1.5"><Truck className="h-3.5 w-3.5 text-[#0d9488]" /> Fresh Daily</span>
               </div>
             </div>
@@ -243,6 +241,12 @@ export default function LoginPage() {
             <Link to="/auth/register" className="font-semibold text-[#0d9488] underline-offset-4 hover:underline">
               Create an account →
             </Link>
+          </p>
+
+          {/* Branding */}
+          <p className="mt-4 text-center text-[11px] text-gray-400">
+            A product by{' '}
+            <span className="font-semibold text-gray-500">Intellux</span>
           </p>
         </div>
       </div>

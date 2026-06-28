@@ -68,7 +68,7 @@ async def _load_sms_settings(db: AsyncSession) -> dict:
     rows = {row.key: row.value for row in result.scalars().all()}
     return {
         "api_key": rows.get("fast2sms_api_key") or None,
-        "provider": rows.get("otp_provider") or "sms",
+        "provider": rows.get("otp_provider") or "whatsapp",
         "otp_id": rows.get("fast2sms_otp_id") or None,
     }
 

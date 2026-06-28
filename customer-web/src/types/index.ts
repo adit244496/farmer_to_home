@@ -110,16 +110,17 @@ export interface CartItem {
 }
 
 export interface Address {
-  id: number
+  id: string
   label: string
-  full_name: string
+  recipient_name: string
   phone: string
-  line1: string
-  line2?: string
+  house: string
   area: string
   city: string
   state: string
   pin_code: string
+  lat?: number
+  lng?: number
   is_default: boolean
 }
 

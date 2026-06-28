@@ -12,6 +12,46 @@ from app.services import order_service
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
 
+@router.get("/delivery-check", summary="Check if delivery is available for a location (public)")
+async def check_delivery_availability(
+    state: str = Query(default=""),
+    city: str = Query(default=""),
+    pin_code: str = Query(default=""),
+    db: AsyncSession = Depends(get_db),
+):
+    """Returns {allowed: bool}. No auth required. Empty lists = deliver everywhere."""
+    from app.models.settings import SiteSetting
+    from sqlalchemy import select as _select
+    zone_keys = ["delivery_allowed_states", "delivery_allowed_cities", "delivery_allowed_pincodes"]
+    result = await db.execute(_select(SiteSetting).where(SiteSetting.key.in_(zone_keys)))
+    rows = {r.key: r.value or "" for r in result.scalars().all()}
+
+    def _list(raw: str) -> list[str]:
+        return [x.strip().lower() for x in raw.split(",") if x.strip()]
+
+    allowed_states = _list(rows.get("delivery_allowed_states", ""))
+    allowed_cities = _list(rows.get("delivery_allowed_cities", ""))
+    allowed_pincodes = _list(rows.get("delivery_allowed_pincodes", ""))
+
+    if not allowed_states and not allowed_cities and not allowed_pincodes:
+        return {"allowed": True}
+
+    state_ok = not allowed_states or state.strip().lower() in allowed_states
+    city_ok = not allowed_cities or city.strip().lower() in allowed_cities
+    pin_ok = not allowed_pincodes or pin_code.strip() in allowed_pincodes
+
+    return {"allowed": state_ok and city_ok and pin_ok}
+
+
+@router.get("/public-settings", summary="Public business info (WhatsApp number)")
+async def get_public_settings(db: AsyncSession = Depends(get_db)):
+    from app.models.settings import SiteSetting
+    from sqlalchemy import select as _select
+    result = await db.execute(_select(SiteSetting).where(SiteSetting.key == "business_whatsapp"))
+    row = result.scalar_one_or_none()
+    return {"business_whatsapp": row.value if row else ""}
+
+
 @router.post("/", status_code=status.HTTP_201_CREATED, summary="Place an order")
 async def place_order(
     body: OrderCreate,

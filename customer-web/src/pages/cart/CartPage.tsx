@@ -15,7 +15,7 @@ export default function CartPage() {
   const { t: tc } = useTranslation('common')
   const navigate = useNavigate()
   const { language } = useAuthStore()
-  const { items, subtotal, deliveryCharge, totalAmount, loading, fetchCart, updateItem, removeItem } = useCartStore()
+  const { items, subtotal, cartDiscount, deliveryCharge, gst, totalAmount, minOrderValue, loading, fetchCart, updateItem, removeItem } = useCartStore()
 
   useEffect(() => { fetchCart() }, [fetchCart])
 
@@ -104,6 +104,13 @@ export default function CartPage() {
               })}
             </div>
 
+            {/* Min order warning */}
+            {minOrderValue > 0 && subtotal < minOrderValue && (
+              <div className="bg-amber-50 border border-amber-200 rounded-xl px-4 py-3 text-sm text-amber-700">
+                Add {formatCurrency(minOrderValue - subtotal)} more to place your order (minimum {formatCurrency(minOrderValue)})
+              </div>
+            )}
+
             {/* Summary */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4 space-y-3">
               <h3 className="font-semibold text-gray-800">{t('orderSummary')}</h3>
@@ -111,6 +118,12 @@ export default function CartPage() {
                 <span className="text-gray-500">{t('subtotal')}</span>
                 <span>{formatCurrency(subtotal)}</span>
               </div>
+              {cartDiscount > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Discount</span>
+                  <span className="text-green-600 font-medium">− {formatCurrency(cartDiscount)}</span>
+                </div>
+              )}
               <div className="flex justify-between text-sm">
                 <span className="text-gray-500">{t('deliveryCharge')}</span>
                 <span className={deliveryCharge === 0 ? 'text-green-600 font-medium' : ''}>
@@ -120,13 +133,24 @@ export default function CartPage() {
               {deliveryCharge > 0 && (
                 <p className="text-xs text-gray-400">{t('freeDeliveryAbove')}</p>
               )}
+              {gst > 0 && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">GST</span>
+                  <span>{formatCurrency(gst)}</span>
+                </div>
+              )}
               <div className="border-t border-gray-100 pt-3 flex justify-between font-bold">
                 <span>{t('grandTotal')}</span>
                 <span className="text-primary-700">{formatCurrency(totalAmount)}</span>
               </div>
             </div>
 
-            <Button fullWidth size="lg" onClick={() => navigate('/checkout')}>
+            <Button
+              fullWidth
+              size="lg"
+              onClick={() => navigate('/checkout')}
+              disabled={minOrderValue > 0 && subtotal < minOrderValue}
+            >
               Proceed to Checkout
             </Button>
           </div>

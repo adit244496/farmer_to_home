@@ -20,8 +20,20 @@ from app.utils.notifications import create_notification
 
 logger = logging.getLogger(__name__)
 
-DELIVERY_CHARGE = Decimal("30.00")
-FREE_DELIVERY_THRESHOLD = Decimal("300.00")
+_COMMERCE_DEFAULTS = {
+    "delivery_charge": Decimal("30"),
+    "free_delivery_threshold": Decimal("300"),
+    "min_order_value": Decimal("0"),
+    "cart_discount_percent": Decimal("0"),
+    "gst_percent": Decimal("0"),
+}
+
+
+async def _load_commerce_settings(db: AsyncSession) -> dict:
+    from app.models.settings import SiteSetting
+    result = await db.execute(select(SiteSetting).where(SiteSetting.key.in_(_COMMERCE_DEFAULTS.keys())))
+    rows = {r.key: r.value for r in result.scalars().all()}
+    return {k: Decimal(rows[k]) if rows.get(k) else v for k, v in _COMMERCE_DEFAULTS.items()}
 
 
 def get_razorpay_client() -> razorpay.Client:
@@ -137,17 +149,27 @@ async def get_cart(
             "added_at": item.added_at,
         })
 
-    # Delivery charge: ₹30 per farmer, free if subtotal > ₹300
+    cs = await _load_commerce_settings(db)
+
+    cart_discount = (subtotal * cs["cart_discount_percent"] / 100).quantize(Decimal("1"))
+    discounted = subtotal - cart_discount
+
     delivery_charge = Decimal("0")
-    if subtotal < FREE_DELIVERY_THRESHOLD:
-        delivery_charge = DELIVERY_CHARGE * len(farmers_in_cart)
+    if discounted < cs["free_delivery_threshold"]:
+        delivery_charge = cs["delivery_charge"] * len(farmers_in_cart)
+
+    gst = (discounted * cs["gst_percent"] / 100).quantize(Decimal("1"))
+    total = discounted + delivery_charge + gst
 
     return {
         "items": items,
         "subtotal": subtotal,
+        "cart_discount": cart_discount,
         "delivery_charge": delivery_charge,
-        "discount": Decimal("0"),
-        "total": subtotal + delivery_charge,
+        "gst": gst,
+        "discount": cart_discount,
+        "total": total,
+        "min_order_value": cs["min_order_value"],
         "promo_code": None,
     }
 

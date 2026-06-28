@@ -109,18 +109,23 @@ async def lifespan(app: FastAPI):
                     "RestrictPublicBuckets": False,
                 },
             )
-            # 2. Bucket policy: allow anonymous GET on products/* so images render in browsers
+            # 2. Bucket policy: allow anonymous GET on public asset prefixes
+            #    aadhaar/ and land_docs/ are intentionally excluded (private documents)
+            public_prefixes = ["products", "farmers", "reviews", "profiles", "uploads"]
             s3.put_bucket_policy(
                 Bucket=settings.AWS_BUCKET_NAME,
                 Policy=_json.dumps({
                     "Version": "2012-10-17",
                     "Statement": [
                         {
-                            "Sid": "PublicReadProductImages",
+                            "Sid": "PublicReadMediaAssets",
                             "Effect": "Allow",
                             "Principal": "*",
                             "Action": "s3:GetObject",
-                            "Resource": f"arn:aws:s3:::{settings.AWS_BUCKET_NAME}/products/*",
+                            "Resource": [
+                                f"arn:aws:s3:::{settings.AWS_BUCKET_NAME}/{prefix}/*"
+                                for prefix in public_prefixes
+                            ],
                         }
                     ],
                 }),

@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Loader2, AlertCircle, Eye, EyeOff, Mail, MessageSquare, CheckCircle, Save } from 'lucide-react'
+import { Loader2, AlertCircle, Eye, EyeOff, Mail, MessageSquare, CheckCircle, Save, ShoppingCart, MapPin } from 'lucide-react'
 import api from '@/lib/api'
 import clsx from 'clsx'
 
@@ -107,6 +107,291 @@ function SectionRow({ section, onToggle }: {
           <><Eye className="h-4 w-4" /> Show</>
         )}
       </button>
+    </div>
+  )
+}
+
+interface DeliveryZones {
+  delivery_allowed_states: string
+  delivery_allowed_cities: string
+  delivery_allowed_pincodes: string
+  business_whatsapp: string
+}
+
+function DeliveryZonesCard() {
+  const [form, setForm] = useState<DeliveryZones | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle')
+
+  const { isLoading, isError } = useQuery<DeliveryZones>({
+    queryKey: ['admin-delivery-zones'],
+    queryFn: async () => {
+      const res = await api.get('/admin/settings/delivery-zones')
+      setForm(res.data)
+      return res.data
+    },
+  })
+
+  const set = (field: keyof DeliveryZones) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setForm((prev) => prev ? { ...prev, [field]: e.target.value } : prev)
+    setSaveStatus('idle')
+  }
+
+  const handleSave = async () => {
+    if (!form) return
+    setSaving(true)
+    setSaveStatus('idle')
+    try {
+      await api.patch('/admin/settings/delivery-zones', form)
+      setSaveStatus('success')
+      setTimeout(() => setSaveStatus('idle'), 3000)
+    } catch {
+      setSaveStatus('error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (isLoading) return (
+    <div className="flex items-center justify-center h-32 bg-white rounded-xl border border-gray-200">
+      <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+    </div>
+  )
+
+  if (isError || !form) return (
+    <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-4">
+      <AlertCircle className="h-5 w-5 flex-shrink-0" />
+      <span className="text-sm">Failed to load delivery zone settings.</span>
+    </div>
+  )
+
+  const ZoneField = ({ label, field, placeholder, note }: {
+    label: string; field: keyof DeliveryZones; placeholder: string; note: string
+  }) => (
+    <div>
+      <label className="block text-xs font-medium text-gray-700 mb-1">{label}</label>
+      <textarea
+        rows={2}
+        value={form[field]}
+        onChange={set(field)}
+        placeholder={placeholder}
+        className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-farm-green-400 resize-none"
+      />
+      <p className="text-xs text-gray-400 mt-1">{note}</p>
+    </div>
+  )
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-5">
+      <div>
+        <div className="flex items-center gap-2 mb-1">
+          <MapPin className="h-5 w-5 text-farm-green-600" />
+          <h3 className="font-semibold text-gray-900">Delivery Zones</h3>
+        </div>
+        <p className="text-xs text-gray-500">
+          Leave all three fields empty to allow delivery everywhere. When any field is set, all non-empty criteria must match.
+        </p>
+      </div>
+
+      <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 text-xs text-blue-700">
+        <strong>AND logic:</strong> An address is allowed only if it satisfies every non-empty list. To allow all of Maharashtra but only Pune-specific pincodes — set state = "Maharashtra" and pincodes = the specific codes.
+      </div>
+
+      <div className="space-y-4">
+        <ZoneField
+          label="Allowed States"
+          field="delivery_allowed_states"
+          placeholder="e.g. Maharashtra, Goa"
+          note="Comma-separated state names. Empty = all states allowed."
+        />
+        <ZoneField
+          label="Allowed Cities"
+          field="delivery_allowed_cities"
+          placeholder="e.g. Pune, Mumbai, Nashik"
+          note="Comma-separated city names (case-insensitive). Empty = all cities allowed."
+        />
+        <ZoneField
+          label="Allowed PIN Codes"
+          field="delivery_allowed_pincodes"
+          placeholder="e.g. 411001, 411002, 411057"
+          note="Comma-separated 6-digit PIN codes. Empty = all pincodes allowed."
+        />
+
+        <div>
+          <label className="block text-xs font-medium text-gray-700 mb-1">Business WhatsApp Number</label>
+          <input
+            type="text"
+            value={form.business_whatsapp}
+            onChange={set('business_whatsapp')}
+            placeholder="e.g. 919876543210 (with country code, no +)"
+            className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm outline-none focus:border-farm-green-400"
+          />
+          <p className="text-xs text-gray-400 mt-1">
+            Shown to customers outside your delivery zone (wa.me link). Include country code: 91XXXXXXXXXX.
+          </p>
+        </div>
+      </div>
+
+      <div className="flex items-center gap-3 pt-1">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-2 bg-farm-green-600 hover:bg-farm-green-700 disabled:bg-farm-green-400 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors"
+        >
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          Save Settings
+        </button>
+        {saveStatus === 'success' && (
+          <div className="flex items-center gap-1.5 text-green-600 text-sm">
+            <CheckCircle className="h-4 w-4" /> Saved successfully
+          </div>
+        )}
+        {saveStatus === 'error' && (
+          <div className="flex items-center gap-1.5 text-red-600 text-sm">
+            <AlertCircle className="h-4 w-4" /> Failed to save
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
+interface CommerceSettings {
+  delivery_charge: number
+  free_delivery_threshold: number
+  min_order_value: number
+  cart_discount_percent: number
+  gst_percent: number
+}
+
+function CommerceSettingsCard() {
+  const [form, setForm] = useState<CommerceSettings | null>(null)
+  const [saving, setSaving] = useState(false)
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle')
+
+  const { isLoading, isError } = useQuery<CommerceSettings>({
+    queryKey: ['admin-commerce'],
+    queryFn: async () => {
+      const res = await api.get('/admin/settings/commerce')
+      setForm(res.data)
+      return res.data
+    },
+  })
+
+  const set = (field: keyof CommerceSettings) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = parseFloat(e.target.value) || 0
+    setForm((prev) => prev ? { ...prev, [field]: val } : prev)
+    setSaveStatus('idle')
+  }
+
+  const handleSave = async () => {
+    if (!form) return
+    setSaving(true)
+    setSaveStatus('idle')
+    try {
+      await api.patch('/admin/settings/commerce', form)
+      setSaveStatus('success')
+      setTimeout(() => setSaveStatus('idle'), 3000)
+    } catch {
+      setSaveStatus('error')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (isLoading) return (
+    <div className="flex items-center justify-center h-32 bg-white rounded-xl border border-gray-200">
+      <Loader2 className="h-5 w-5 animate-spin text-gray-400" />
+    </div>
+  )
+
+  if (isError || !form) return (
+    <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-xl px-4 py-4">
+      <AlertCircle className="h-5 w-5 flex-shrink-0" />
+      <span className="text-sm">Failed to load commerce settings.</span>
+    </div>
+  )
+
+  const Field = ({ label, field, note, prefix = '₹', suffix = '' }: {
+    label: string; field: keyof CommerceSettings; note?: string; prefix?: string; suffix?: string
+  }) => (
+    <div>
+      <label className="block text-xs font-medium text-gray-600 mb-1">{label}</label>
+      <div className="flex items-center border border-gray-200 rounded-lg overflow-hidden focus-within:border-farm-green-400">
+        {prefix && <span className="px-3 py-2 bg-gray-50 text-sm text-gray-500 border-r border-gray-200">{prefix}</span>}
+        <input
+          type="number"
+          min="0"
+          step="0.01"
+          value={form[field]}
+          onChange={set(field)}
+          className="flex-1 px-3 py-2 text-sm outline-none bg-white"
+        />
+        {suffix && <span className="px-3 py-2 bg-gray-50 text-sm text-gray-500 border-l border-gray-200">{suffix}</span>}
+      </div>
+      {note && <p className="text-xs text-gray-400 mt-1">{note}</p>}
+    </div>
+  )
+
+  return (
+    <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-5">
+      <div className="flex items-center gap-2">
+        <ShoppingCart className="h-5 w-5 text-farm-green-600" />
+        <h3 className="font-semibold text-gray-900">Cart & Pricing Settings</h3>
+      </div>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <Field
+          label="Delivery Charge (per farmer)"
+          field="delivery_charge"
+          note="Added per unique farmer in the cart"
+        />
+        <Field
+          label="Free Delivery Above"
+          field="free_delivery_threshold"
+          note="Cart subtotal above this = free delivery"
+        />
+        <Field
+          label="Minimum Order Value"
+          field="min_order_value"
+          note="Customer must reach this to place an order (0 = no minimum)"
+        />
+        <Field
+          label="Cart Discount"
+          field="cart_discount_percent"
+          prefix=""
+          suffix="%"
+          note="Percentage discount applied to every cart subtotal"
+        />
+        <Field
+          label="GST"
+          field="gst_percent"
+          prefix=""
+          suffix="%"
+          note="Applied on discounted subtotal (0 = no GST)"
+        />
+      </div>
+
+      <div className="flex items-center gap-3 pt-1">
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="flex items-center gap-2 bg-farm-green-600 hover:bg-farm-green-700 disabled:bg-farm-green-400 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors"
+        >
+          {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+          Save Settings
+        </button>
+        {saveStatus === 'success' && (
+          <div className="flex items-center gap-1.5 text-green-600 text-sm">
+            <CheckCircle className="h-4 w-4" /> Saved successfully
+          </div>
+        )}
+        {saveStatus === 'error' && (
+          <div className="flex items-center gap-1.5 text-red-600 text-sm">
+            <AlertCircle className="h-4 w-4" /> Failed to save
+          </div>
+        )}
+      </div>
     </div>
   )
 }
@@ -248,6 +533,11 @@ function SmsSettingsCard() {
             <p className="text-xs font-semibold text-gray-700 mb-0.5">
               {form.otp_provider === 'fast2sms_whatsapp' ? 'Fast2SMS — WhatsApp Channel' : 'Fast2SMS — SMS Channel'}
             </p>
+            {form.otp_provider === 'fast2sms_whatsapp' && (
+              <p className="text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 mb-2">
+                Requires a linked <strong>WhatsApp Business account</strong> in Fast2SMS (fast2sms.com → Smart OTP → WhatsApp Channel → Step 1).
+              </p>
+            )}
             <p className="text-xs text-gray-400">
               Create an OTP template at{' '}
               <span className="font-mono bg-gray-100 px-1 rounded">fast2sms.com → Smart OTP</span>
@@ -582,6 +872,18 @@ export default function AppSettingsPage() {
 
   return (
     <div className="space-y-8">
+      {/* Delivery Zones */}
+      <div>
+        <h2 className="text-base font-semibold text-gray-800 mb-3">Delivery Zones</h2>
+        <DeliveryZonesCard />
+      </div>
+
+      {/* Commerce / Pricing Settings */}
+      <div>
+        <h2 className="text-base font-semibold text-gray-800 mb-3">Commerce &amp; Pricing</h2>
+        <CommerceSettingsCard />
+      </div>
+
       {/* SMS / WhatsApp OTP Settings */}
       <div>
         <h2 className="text-base font-semibold text-gray-800 mb-3">SMS / WhatsApp Settings</h2>
