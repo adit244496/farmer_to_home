@@ -41,6 +41,9 @@ services:
     restart: always
     env_file:
       - ./backend/.env.production
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
     depends_on:
       postgres:
         condition: service_healthy
