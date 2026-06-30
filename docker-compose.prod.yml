@@ -54,6 +54,8 @@ services:
     image: nginx:alpine
     container_name: fth_nginx
     restart: always
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "80:80"
       - "443:443"
@@ -62,6 +64,9 @@ services:
       - ./customer-web/dist:/var/www/web:ro
       - certbot_www:/var/www/certbot:ro
       - certbot_conf:/etc/letsencrypt:ro
+      - /etc/letsencrypt:/etc/letsencrypt-intellux:ro
+      - /home/ec2-user/apps/intellux/frontend/dist:/var/www/intellux:ro
+      - /home/ec2-user/apps/intellux/backend/uploads:/var/www/intellux-uploads:ro
     depends_on:
       - backend
 
