@@ -22,14 +22,14 @@ import WishlistPage from '@/pages/wishlist/WishlistPage'
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isInitialized } = useAuthStore()
-  if (!isInitialized) return <div className="flex h-screen items-center justify-center"><Spinner /></div>
+  if (!isInitialized) return <div className="flex h-[100dvh] items-center justify-center"><Spinner /></div>
   if (!isAuthenticated) return <Navigate to="/login" replace />
   return <>{children}</>
 }
 
 function PublicRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isInitialized } = useAuthStore()
-  if (!isInitialized) return <div className="flex h-screen items-center justify-center"><Spinner /></div>
+  if (!isInitialized) return <div className="flex h-[100dvh] items-center justify-center"><Spinner /></div>
   if (isAuthenticated) return <Navigate to="/" replace />
   return <>{children}</>
 }

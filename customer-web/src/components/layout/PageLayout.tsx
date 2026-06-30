@@ -10,7 +10,7 @@ interface PageLayoutProps {
 
 export function PageLayout({ children, className = '', fullBleed = false }: PageLayoutProps) {
   return (
-    <div className={`min-h-screen bg-gray-50 pb-20 sm:pb-0 ${className}`}>
+    <div className={`min-h-[100dvh] bg-gray-50 pb-20 sm:pb-0 ${className}`}>
       <Header />
       {fullBleed ? (
         children

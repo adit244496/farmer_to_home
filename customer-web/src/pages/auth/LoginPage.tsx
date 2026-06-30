@@ -73,7 +73,7 @@ export default function LoginPage() {
 
   return (
     <AuthLayout>
-      <div className="min-h-screen w-full flex items-center justify-center px-4 py-8 bg-gradient-to-br from-[#f0fdfa] via-white to-[#f0fdfa]">
+      <div className="min-h-[100dvh] w-full flex items-center justify-center px-4 py-8 bg-gradient-to-br from-[#f0fdfa] via-white to-[#f0fdfa]">
         {/* Decorative blobs */}
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
           <div className="absolute -top-24 -left-24 h-72 w-72 rounded-full bg-[#0d9488]/10 blur-3xl" />

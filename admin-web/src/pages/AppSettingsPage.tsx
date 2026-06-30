@@ -1,10 +1,11 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Loader2, AlertCircle, Eye, EyeOff, Mail, MessageSquare, CheckCircle, Save, ShoppingCart, MapPin } from 'lucide-react'
+import { Loader2, AlertCircle, Eye, EyeOff, Mail, MessageSquare, CheckCircle, Save, ShoppingCart, MapPin, ChevronRight, ChevronDown } from 'lucide-react'
 import api from '@/lib/api'
 import clsx from 'clsx'
-import { SearchableSelect } from '@/components/SearchableSelect'
+import { MultiSearchableSelect } from '@/components/MultiSearchableSelect'
 import { TagInput } from '@/components/TagInput'
+import { CITIES_BY_STATE } from '@/data/indianCities'
 
 const INDIAN_STATES = [
   'Andhra Pradesh', 'Arunachal Pradesh', 'Assam', 'Bihar', 'Chhattisgarh',
@@ -142,8 +143,9 @@ function DeliveryZonesCard() {
   const [states, setStates] = useState<string[]>([])
   const [cities, setCities] = useState<string[]>([])
   const [pincodes, setPincodes] = useState<string[]>([])
+  const [availablePincodes, setAvailablePincodes] = useState<string[]>([])
+  const [pinLoading, setPinLoading] = useState(false)
   const [whatsapp, setWhatsapp] = useState('')
-  const [addState, setAddState] = useState('')
   const [saving, setSaving] = useState(false)
   const [saveStatus, setSaveStatus] = useState<'idle' | 'success' | 'error'>('idle')
   const [loaded, setLoaded] = useState(false)
@@ -161,6 +163,51 @@ function DeliveryZonesCard() {
       return d
     },
   })
+
+  const availableCities = React.useMemo(
+    () => states.flatMap((s) => CITIES_BY_STATE[s] ?? []).sort(),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [states.join(',')]
+  )
+
+  // When states change, prune cities that no longer belong to selected states
+  React.useEffect(() => {
+    if (states.length > 0) {
+      const valid = states.flatMap((s) => CITIES_BY_STATE[s] ?? [])
+      setCities((prev) => prev.filter((c) => valid.includes(c)))
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [states.join(',')])
+
+  // Fetch pincodes from India Post API for each selected city
+  React.useEffect(() => {
+    if (cities.length === 0) {
+      setAvailablePincodes([])
+      return
+    }
+    let cancelled = false
+    setPinLoading(true)
+    Promise.all(
+      cities.map(async (city) => {
+        try {
+          const res = await fetch(`https://api.postalpincode.in/postoffice/${encodeURIComponent(city)}`)
+          const data = await res.json()
+          if (data?.[0]?.Status === 'Success') {
+            return (data[0].PostOffice as { Pincode: string }[]).map((po) => po.Pincode)
+          }
+          return []
+        } catch {
+          return []
+        }
+      })
+    ).then((results) => {
+      if (!cancelled) setAvailablePincodes([...new Set(results.flat())].sort())
+    }).finally(() => {
+      if (!cancelled) setPinLoading(false)
+    })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cities.join(',')])
 
   const handleSave = async () => {
     setSaving(true)
@@ -194,7 +241,8 @@ function DeliveryZonesCard() {
     </div>
   )
 
-  const unusedStates = INDIAN_STATES.filter((s) => !states.includes(s))
+  // Merge API-fetched pincodes with any already-selected ones not yet in the list
+  const allPincodeOptions = [...new Set([...availablePincodes, ...pincodes])].sort()
 
   return (
     <div className="bg-white rounded-xl border border-gray-200 p-5 space-y-5">
@@ -213,58 +261,60 @@ function DeliveryZonesCard() {
       </div>
 
       <div className="space-y-4">
-        {/* States — searchable dropdown to add */}
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">Allowed States</label>
-          <div className="flex gap-2 mb-2">
-            <SearchableSelect
-              options={unusedStates}
-              value={addState}
-              onChange={(v) => {
-                if (v && !states.includes(v)) setStates((prev) => [...prev, v])
-                setAddState('')
-              }}
-              placeholder="Search and add a state…"
-              className="flex-1"
-            />
-          </div>
-          {states.length > 0 && (
-            <div className="flex flex-wrap gap-1.5">
-              {states.map((s) => (
-                <span key={s} className="inline-flex items-center gap-1 bg-farm-green-50 text-farm-green-700 text-xs font-medium px-2 py-1 rounded-md">
-                  {s}
-                  <button type="button" onClick={() => setStates((prev) => prev.filter((x) => x !== s))}
-                    className="text-farm-green-400 hover:text-farm-green-700">
-                    <svg className="h-3 w-3" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5}><path d="M18 6L6 18M6 6l12 12"/></svg>
-                  </button>
-                </span>
-              ))}
-            </div>
-          )}
+          <MultiSearchableSelect
+            options={INDIAN_STATES}
+            selected={states}
+            onChange={(v) => { setStates(v); setSaveStatus('idle') }}
+            placeholder="Search and select states…"
+          />
           <p className="text-xs text-gray-400 mt-1">Empty = all states allowed.</p>
         </div>
 
-        {/* Cities — tag input */}
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">Allowed Cities</label>
-          <TagInput
-            tags={cities}
-            onChange={setCities}
-            placeholder="Type city name and press Enter…"
-          />
-          <p className="text-xs text-gray-400 mt-1">Case-insensitive. Empty = all cities allowed.</p>
+          {states.length === 0 ? (
+            <div className="border border-dashed border-gray-200 rounded-lg px-3 py-2.5 text-xs text-gray-400">
+              Select at least one state to browse its cities.
+            </div>
+          ) : (
+            <MultiSearchableSelect
+              options={availableCities}
+              selected={cities}
+              onChange={(v) => { setCities(v); setSaveStatus('idle') }}
+              placeholder="Search and select cities…"
+              emptyMessage="No cities found for selected states"
+            />
+          )}
+          <p className="text-xs text-gray-400 mt-1">Empty = all cities allowed (within selected states).</p>
         </div>
 
-        {/* Pincodes — tag input with 6-digit validation */}
         <div>
           <label className="block text-xs font-medium text-gray-700 mb-1">Allowed PIN Codes</label>
-          <TagInput
-            tags={pincodes}
-            onChange={setPincodes}
-            placeholder="Type 6-digit PIN and press Enter…"
-            validate={(pin) => /^\d{6}$/.test(pin)}
-          />
-          <p className="text-xs text-gray-400 mt-1">6-digit PIN codes only. Empty = all pincodes allowed.</p>
+          {cities.length === 0 ? (
+            <>
+              <TagInput
+                tags={pincodes}
+                onChange={(v) => { setPincodes(v); setSaveStatus('idle') }}
+                placeholder="Type 6-digit PIN and press Enter…"
+                validate={(pin) => /^\d{6}$/.test(pin)}
+              />
+              <p className="text-xs text-gray-400 mt-1">Select cities above to load pincodes automatically, or type them manually.</p>
+            </>
+          ) : (
+            <>
+              <MultiSearchableSelect
+                options={allPincodeOptions}
+                selected={pincodes}
+                onChange={(v) => { setPincodes(v); setSaveStatus('idle') }}
+                placeholder={pinLoading ? 'Loading pincodes for selected cities…' : 'Search and select pincodes…'}
+                loading={pinLoading}
+                emptyMessage="No pincodes found — try selecting different cities"
+              />
+              <p className="text-xs text-gray-400 mt-1">Loaded from selected cities. Empty = all pincodes allowed.</p>
+            </>
+          )}
         </div>
 
         <div>
@@ -906,6 +956,29 @@ function SmtpSettingsCard() {
   )
 }
 
+function CollapsibleSection({ title, children }: { title: string; children: React.ReactNode }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <div className="border border-gray-200 rounded-xl overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between px-5 py-4 bg-white hover:bg-gray-50 transition-colors text-left"
+      >
+        <span className="text-sm font-semibold text-gray-800">{title}</span>
+        {open
+          ? <ChevronDown className="h-4 w-4 text-gray-400 flex-shrink-0" />
+          : <ChevronRight className="h-4 w-4 text-gray-400 flex-shrink-0" />}
+      </button>
+      {open && (
+        <div className="border-t border-gray-200 p-5 bg-white">
+          {children}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function AppSettingsPage() {
   const queryClient = useQueryClient()
 
@@ -923,53 +996,35 @@ export default function AppSettingsPage() {
   }
 
   return (
-    <div className="space-y-8">
-      {/* Delivery Zones */}
-      <div>
-        <h2 className="text-base font-semibold text-gray-800 mb-3">Delivery Zones</h2>
+    <div className="space-y-3">
+      <CollapsibleSection title="Delivery Zones">
         <DeliveryZonesCard />
-      </div>
+      </CollapsibleSection>
 
-      {/* Commerce / Pricing Settings */}
-      <div>
-        <h2 className="text-base font-semibold text-gray-800 mb-3">Commerce &amp; Pricing</h2>
+      <CollapsibleSection title="Commerce &amp; Pricing">
         <CommerceSettingsCard />
-      </div>
+      </CollapsibleSection>
 
-      {/* SMS / WhatsApp OTP Settings */}
-      <div>
-        <h2 className="text-base font-semibold text-gray-800 mb-3">SMS / WhatsApp Settings</h2>
+      <CollapsibleSection title="SMS / WhatsApp Settings">
         <SmsSettingsCard />
-      </div>
+      </CollapsibleSection>
 
-      {/* SMTP Settings */}
-      <div>
-        <h2 className="text-base font-semibold text-gray-800 mb-3">Email Settings</h2>
+      <CollapsibleSection title="Email Settings">
         <SmtpSettingsCard />
-      </div>
+      </CollapsibleSection>
 
-      {/* App Sections */}
-      <div>
-        <div className="bg-blue-50 border border-blue-200 rounded-xl px-5 py-4 mb-4">
-          <h2 className="text-sm font-semibold text-blue-800">Customer App — Home Screen Sections</h2>
-          <p className="text-xs text-blue-600 mt-1">
-            Control which sections are visible on the customer app's home screen.
-          </p>
-        </div>
-
+      <CollapsibleSection title="Customer App — Home Screen Sections">
         {isLoading && (
           <div className="flex items-center justify-center h-32">
             <Loader2 className="h-8 w-8 animate-spin text-farm-green-600" />
           </div>
         )}
-
         {isError && (
           <div className="flex items-center gap-3 bg-red-50 border border-red-200 text-red-700 rounded-lg px-4 py-4">
             <AlertCircle className="h-5 w-5 flex-shrink-0" />
             <span className="text-sm">Failed to load sections.</span>
           </div>
         )}
-
         {sections && (
           <>
             <div className="flex gap-4 mb-4">
@@ -989,7 +1044,7 @@ export default function AppSettingsPage() {
             </div>
           </>
         )}
-      </div>
+      </CollapsibleSection>
     </div>
   )
 }

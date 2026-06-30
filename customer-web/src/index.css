@@ -7,9 +7,17 @@
     -webkit-tap-highlight-color: transparent;
   }
 
+  html {
+    /* dvh tracks the visible viewport as the browser chrome collapses on scroll */
+    height: 100%;
+  }
+
   body {
     @apply bg-gray-50 text-gray-900;
     font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    min-height: 100dvh;
+    /* Prevent elastic overscroll on iOS from interfering with address-bar collapse */
+    overscroll-behavior-y: none;
   }
 }
 

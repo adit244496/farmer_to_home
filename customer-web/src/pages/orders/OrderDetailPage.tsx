@@ -48,7 +48,7 @@ export default function OrderDetailPage() {
   const canCancel = ['pending', 'confirmed'].includes(order.status)
 
   return (
-    <div className="min-h-screen bg-gray-50 pb-8">
+    <div className="min-h-[100dvh] bg-gray-50 pb-8">
       <header className="sticky top-0 z-40 bg-white border-b border-gray-200 px-4 h-14 flex items-center gap-3">
         <button onClick={() => navigate('/orders')} className="text-gray-500 hover:text-gray-700">
           <ArrowLeft className="h-5 w-5" />
